@@ -1,0 +1,112 @@
+{
+  "presets": [
+    {
+      "id": "cecil-paladin",
+      "name": "Cecil the Paladin",
+      "gameType": "TOP_DOWN_RPG",
+      "genre": "Classic Fantasy",
+      "description": "A noble paladin with shoulder-length silver-white hair, strong jawline, and piercing blue eyes. Medium athletic build. Stands with confident, upright posture.",
+      "equipment": "Ornate white-and-gold plate armor with a blue cape, wielding a holy longsword with a glowing blade. Shield with a sun emblem on his back.",
+      "colorNotes": "Silver-white hair, blue eyes. White and gold armor with blue accents. Cape is royal blue with gold trim."
+    },
+    {
+      "id": "vivienne-scholar",
+      "name": "Vivienne the Scholar",
+      "gameType": "TOP_DOWN_RPG",
+      "genre": "Classic Fantasy",
+      "description": "A studious mage with chin-length dark auburn hair, round spectacles, and warm brown eyes. Petite frame with a thoughtful expression and slightly hunched scholarly posture.",
+      "equipment": "Flowing purple robes with gold embroidered runes, carrying a thick leather-bound tome in one hand and a crystal-topped staff in the other. A satchel of scrolls at her hip.",
+      "colorNotes": "Dark auburn hair, brown eyes. Deep purple robes with gold trim and rune patterns. Staff crystal is pale violet. Book is brown leather with gold clasps."
+    },
+    {
+      "id": "kael-thornwood",
+      "name": "Kael Thornwood",
+      "gameType": "TOP_DOWN_RPG",
+      "genre": "Classic Fantasy",
+      "description": "A lithe elven ranger with long braided golden hair, pointed ears, and sharp green eyes. Lean athletic build with graceful, balanced stance.",
+      "equipment": "Supple forest-green leather armor with a brown hooded cloak, carrying an elegant longbow across his back and a quiver of silver-tipped arrows. A hunting knife at his belt.",
+      "colorNotes": "Golden blonde hair, bright green eyes. Forest-green leather with brown cloak and belt. Bow is pale wood with silver inlay. Arrow fletching is emerald green."
+    },
+    {
+      "id": "chrono-blade",
+      "name": "Chrono Blade",
+      "gameType": "ACTION_RPG",
+      "genre": "Sci-Fantasy",
+      "description": "A time-traveling swordsman with spiky dark blue hair, a determined gaze, and a glowing temporal sigil on his forehead. Athletic build with a dynamic, forward-leaning combat stance.",
+      "equipment": "Sleek silver-gray light armor with crimson accents, a flowing red scarf that trails behind him, and a gleaming katana with a clock-gear guard. A small chrono-device on his left wrist.",
+      "colorNotes": "Dark blue spiky hair, amber eyes. Silver-gray armor with red accents and scarf. Katana blade has a faint blue temporal glow. Wrist device pulses cyan."
+    },
+    {
+      "id": "shadow-weaver",
+      "name": "Shadow Weaver",
+      "gameType": "ACTION_RPG",
+      "genre": "Dark Fantasy",
+      "description": "A stealthy assassin with short-cropped black hair, pale skin, and narrow violet eyes that gleam in darkness. Slim, agile build with a low crouching ready stance.",
+      "equipment": "Form-fitting dark leather armor with deep purple trim, a half-face mask covering the lower face, twin curved daggers with serrated edges, and a belt of throwing knives. A dark hooded cloak with a tattered hem.",
+      "colorNotes": "Black hair, violet eyes, pale skin. Very dark charcoal leather armor with deep purple accents. Daggers are dark steel with purple gem pommels. Cloak is near-black with purple lining."
+    },
+    {
+      "id": "ignis-pyromancer",
+      "name": "Ignis the Pyromancer",
+      "gameType": "ACTION_RPG",
+      "genre": "Elemental Fantasy",
+      "description": "A fierce fire sorceress with long, wild flame-red hair that seems to flicker at the tips, bright orange eyes, and warm bronze skin. Medium build with an assertive, wide-footed stance.",
+      "equipment": "Layered crimson and burnt-orange robes with ember-like particles drifting from the hems, ornate gold bracers on both wrists, and a staff topped with a caged fireball. A fire-opal pendant at her throat.",
+      "colorNotes": "Flame-red hair with orange-yellow tips, orange eyes, bronze skin. Crimson and burnt-orange robes. Gold bracers and pendant. Staff fire is bright orange-yellow. Ember particles are orange-red."
+    },
+    {
+      "id": "mx-zero",
+      "name": "MX-Zero",
+      "gameType": "SIDE_SCROLLER",
+      "genre": "Sci-Fi Action",
+      "description": "A heroic robot with a rounded blue helmet featuring a red gem on the forehead, expressive green eyes, and a compact humanoid frame. Solid, balanced stance with one arm transformed into a cannon.",
+      "equipment": "Sleek blue and cyan armor plating over a dark bodysuit, with white joints and accents. Right arm is a modular arm cannon with a glowing cyan barrel. Armored boots with jet boosters.",
+      "colorNotes": "Primary blue armor with cyan highlights. White joint segments and trim. Dark navy bodysuit underneath. Helmet gem is red. Arm cannon glows cyan. Boot jets are orange when active."
+    },
+    {
+      "id": "hayate-ninja",
+      "name": "Hayate the Wind Ninja",
+      "gameType": "SIDE_SCROLLER",
+      "genre": "Action Platformer",
+      "description": "A swift ninja with a dark blue head wrap leaving only sharp grey eyes visible, lean and agile build, always appearing mid-motion even when standing still.",
+      "equipment": "Dark blue-black fitted shinobi armor with silver arm guards and shin guards, a long trailing silver-white scarf, a ninjato sword strapped to his back, and shuriken holstered at his waist.",
+      "colorNotes": "Dark blue-black armor and head wrap. Grey eyes. Silver-white scarf and metallic silver guards. Ninjato handle is wrapped in dark blue cord. Shuriken are polished steel."
+    },
+    {
+      "id": "sgt-nova",
+      "name": "Sgt. Nova",
+      "gameType": "SIDE_SCROLLER",
+      "genre": "Sci-Fi Action",
+      "description": "A hardened space marine with a full visor helmet showing a green HUD glow, bulky power-armored frame, and a commanding military bearing.",
+      "equipment": "Heavy olive-green and gunmetal power armor with reinforced shoulder plates, a large plasma rifle held at the ready, ammo pouches on the belt, and a jet pack module on the back.",
+      "colorNotes": "Olive-green primary armor with gunmetal-gray secondary plates. Visor glows green. Plasma rifle has a blue energy cell. Jet pack has orange thruster ports. Belt pouches are dark brown."
+    },
+    {
+      "id": "gel-slime",
+      "name": "Gel Slime",
+      "gameType": "CREATURE",
+      "genre": "Classic Fantasy",
+      "description": "A small, round, translucent blue slime creature with a jiggly gelatinous body. Two large, expressive dark eyes with white highlights sit near the top of its body. A perpetual happy expression with a tiny curved mouth.",
+      "equipment": "",
+      "colorNotes": "Translucent sky-blue body with lighter blue highlights on top and darker blue shadow at the base. Eyes are large and dark with bright white shine spots. A faint inner glow gives it a jewel-like quality."
+    },
+    {
+      "id": "magma-wyrm",
+      "name": "Magma Wyrm",
+      "gameType": "CREATURE",
+      "genre": "Classic Fantasy",
+      "description": "A small but fearsome fire-breathing dragon with molten orange-red scales, two curved horns, a ridged back, and a spiked tail. Bat-like wings folded at its sides. Fierce yellow eyes with slit pupils and an open mouth revealing glowing fangs.",
+      "equipment": "",
+      "colorNotes": "Molten orange-red scales with darker crimson underbelly. Bright yellow-orange cracks between scales suggesting inner magma. Horns and claws are dark charcoal. Wing membranes are deep red. Eyes are fierce yellow. Mouth interior glows orange."
+    },
+    {
+      "id": "mosskin-spirit",
+      "name": "Mosskin Spirit",
+      "gameType": "CREATURE",
+      "genre": "Classic Fantasy",
+      "description": "A gentle forest spirit NPC whose body is formed from intertwined bark, leaves, and moss. A rounded head with two large glowing green eyes and a small peaceful smile. Short stubby limbs with leaf-like hands. Small flowers and mushrooms sprout from its shoulders.",
+      "equipment": "",
+      "colorNotes": "Body is mottled brown bark with patches of vibrant green moss. Leaves are various greens from bright lime to deep forest green. Eyes glow soft emerald. Flowers are tiny white and pale yellow. Mushrooms are red with white spots. A faint green aura surrounds it."
+    }
+  ]
+}

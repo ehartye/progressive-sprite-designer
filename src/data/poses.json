@@ -1,0 +1,458 @@
+{
+  "gameTypes": {
+    "TOP_DOWN_RPG": {
+      "id": "TOP_DOWN_RPG",
+      "name": "Top-Down RPG",
+      "description": "Classic FF6 / RPG Maker style with 4-directional movement and separate battle scenes",
+      "defaultSpriteSize": { "w": 16, "h": 24 }
+    },
+    "ACTION_RPG": {
+      "id": "ACTION_RPG",
+      "name": "Action RPG",
+      "description": "Chrono Trigger style with real-time combat on the overworld map",
+      "defaultSpriteSize": { "w": 16, "h": 24 }
+    },
+    "SIDE_SCROLLER": {
+      "id": "SIDE_SCROLLER",
+      "name": "Side-Scroller",
+      "description": "Mega Man X style platformer with fluid run-and-gun action",
+      "defaultSpriteSize": { "w": 24, "h": 32 }
+    },
+    "CREATURE": {
+      "id": "CREATURE",
+      "name": "Creature / NPC",
+      "description": "Enemies, bosses, or NPCs with variable dimensions",
+      "defaultSpriteSize": { "w": 16, "h": 16 }
+    }
+  },
+  "hierarchies": {
+    "TOP_DOWN_RPG": [
+      {
+        "id": "base_idle",
+        "name": "Base Idle",
+        "description": "The foundation pose — all other poses derive from this",
+        "dependsOn": null,
+        "required": true,
+        "poses": [
+          { "id": "idle_front", "name": "Front-Facing Idle", "description": "Standing facing viewer, relaxed", "direction": "down", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "directional_idles",
+        "name": "Directional Idles",
+        "description": "Idle poses for every cardinal direction",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "idle_left", "name": "Left-Facing Idle", "description": "Standing facing left", "direction": "left", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "idle_right", "name": "Right-Facing Idle", "description": "Standing facing right", "direction": "right", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "idle_back", "name": "Back-Facing Idle", "description": "Standing facing away", "direction": "up", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "walk_cycles",
+        "name": "Walk Cycles",
+        "description": "4-directional walk animations (3 frames each)",
+        "dependsOn": "directional_idles",
+        "required": true,
+        "poses": [
+          { "id": "walk_down_1", "name": "Walk Down – Left Step", "description": "Walking toward viewer, left foot forward", "direction": "down", "animGroup": "walk_down", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_down_2", "name": "Walk Down – Passing", "description": "Walking toward viewer, feet together", "direction": "down", "animGroup": "walk_down", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_down_3", "name": "Walk Down – Right Step", "description": "Walking toward viewer, right foot forward", "direction": "down", "animGroup": "walk_down", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_up_1", "name": "Walk Up – Left Step", "description": "Walking away, left foot forward", "direction": "up", "animGroup": "walk_up", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_up_2", "name": "Walk Up – Passing", "description": "Walking away, feet together", "direction": "up", "animGroup": "walk_up", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_up_3", "name": "Walk Up – Right Step", "description": "Walking away, right foot forward", "direction": "up", "animGroup": "walk_up", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_left_1", "name": "Walk Left – Left Step", "description": "Walking left, left foot forward", "direction": "left", "animGroup": "walk_left", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_left_2", "name": "Walk Left – Passing", "description": "Walking left, feet together", "direction": "left", "animGroup": "walk_left", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_left_3", "name": "Walk Left – Right Step", "description": "Walking left, right foot forward", "direction": "left", "animGroup": "walk_left", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_right_1", "name": "Walk Right – Left Step", "description": "Walking right, left foot forward", "direction": "right", "animGroup": "walk_right", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_right_2", "name": "Walk Right – Passing", "description": "Walking right, feet together", "direction": "right", "animGroup": "walk_right", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_right_3", "name": "Walk Right – Right Step", "description": "Walking right, right foot forward", "direction": "right", "animGroup": "walk_right", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "battle_idle",
+        "name": "Battle Idle",
+        "description": "Side-view battle stance animation (3 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "battle_idle_1", "name": "Battle Idle 1", "description": "Side-view battle stance, neutral", "direction": "side", "animGroup": "battle_idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "battle_idle_2", "name": "Battle Idle 2", "description": "Side-view battle stance, breathing", "direction": "side", "animGroup": "battle_idle", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "battle_idle_3", "name": "Battle Idle 3", "description": "Side-view battle stance, returning", "direction": "side", "animGroup": "battle_idle", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "battle_attack",
+        "name": "Battle Attack",
+        "description": "Melee attack in battle (3 frames)",
+        "dependsOn": "battle_idle",
+        "required": true,
+        "poses": [
+          { "id": "battle_attack_1", "name": "Battle Attack – Windup", "description": "Pulling back to strike", "direction": "side", "animGroup": "battle_attack", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "battle_attack_2", "name": "Battle Attack – Strike", "description": "Full swing forward", "direction": "side", "animGroup": "battle_attack", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "battle_attack_3", "name": "Battle Attack – Follow-through", "description": "Recovering from swing", "direction": "side", "animGroup": "battle_attack", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "battle_cast",
+        "name": "Battle Cast / Magic",
+        "description": "Spellcasting in battle (3 frames)",
+        "dependsOn": "battle_idle",
+        "required": false,
+        "poses": [
+          { "id": "battle_cast_1", "name": "Battle Cast – Charge", "description": "Gathering magic", "direction": "side", "animGroup": "battle_cast", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "battle_cast_2", "name": "Battle Cast – Release", "description": "Releasing spell", "direction": "side", "animGroup": "battle_cast", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "battle_cast_3", "name": "Battle Cast – Recover", "description": "Recovering", "direction": "side", "animGroup": "battle_cast", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": false }
+        ]
+      },
+      {
+        "id": "battle_damage",
+        "name": "Battle Damage",
+        "description": "Taking damage in battle (3 frames)",
+        "dependsOn": "battle_idle",
+        "required": true,
+        "poses": [
+          { "id": "battle_damage_1", "name": "Battle Damage – Impact", "description": "Recoiling from hit", "direction": "side", "animGroup": "battle_damage", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "battle_damage_2", "name": "Battle Damage – Stagger", "description": "Staggering backward", "direction": "side", "animGroup": "battle_damage", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "battle_damage_3", "name": "Battle Damage – Recover", "description": "Regaining footing", "direction": "side", "animGroup": "battle_damage", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "battle_ko",
+        "name": "Battle KO / Dead",
+        "description": "Knocked out in battle (2 frames)",
+        "dependsOn": "battle_damage",
+        "required": true,
+        "poses": [
+          { "id": "battle_ko_1", "name": "Battle KO – Collapsing", "description": "Falling to ground", "direction": "side", "animGroup": "battle_ko", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "battle_ko_2", "name": "Battle KO – Down", "description": "Lying defeated", "direction": "side", "animGroup": "battle_ko", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "battle_victory",
+        "name": "Battle Victory",
+        "description": "Victory celebration (3 frames)",
+        "dependsOn": "battle_idle",
+        "required": false,
+        "poses": [
+          { "id": "battle_victory_1", "name": "Victory – Raise", "description": "Raising weapon/fist", "direction": "side", "animGroup": "battle_victory", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "battle_victory_2", "name": "Victory – Pose", "description": "Holding pose", "direction": "side", "animGroup": "battle_victory", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "battle_victory_3", "name": "Victory – Settle", "description": "Relaxing", "direction": "side", "animGroup": "battle_victory", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": false }
+        ]
+      },
+      {
+        "id": "emotes",
+        "name": "Emotes",
+        "description": "Expressive single-frame emote poses",
+        "dependsOn": "base_idle",
+        "required": false,
+        "poses": [
+          { "id": "emote_surprise", "name": "Surprise", "description": "Startled, arms raised", "direction": "down", "animGroup": "emotes", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "emote_sad", "name": "Sad", "description": "Downcast, head bowed", "direction": "down", "animGroup": "emotes", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "emote_laugh", "name": "Laugh", "description": "Joyful, leaning back", "direction": "down", "animGroup": "emotes", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": false }
+        ]
+      }
+    ],
+    "ACTION_RPG": [
+      {
+        "id": "base_idle",
+        "name": "Base Idle",
+        "description": "The foundation pose",
+        "dependsOn": null,
+        "required": true,
+        "poses": [
+          { "id": "idle_front", "name": "Front-Facing Idle", "description": "Standing facing viewer, relaxed", "direction": "down", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "directional_idles",
+        "name": "Directional Idles",
+        "description": "Idle for every direction",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "idle_left", "name": "Left-Facing Idle", "description": "Standing facing left", "direction": "left", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "idle_right", "name": "Right-Facing Idle", "description": "Standing facing right", "direction": "right", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "idle_back", "name": "Back-Facing Idle", "description": "Standing facing away", "direction": "up", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "walk_cycles",
+        "name": "Walk Cycles",
+        "description": "4-directional walk (4 frames each)",
+        "dependsOn": "directional_idles",
+        "required": true,
+        "poses": [
+          { "id": "walk_down_1", "name": "Walk Down 1", "description": "Toward viewer, left foot", "direction": "down", "animGroup": "walk_down", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_down_2", "name": "Walk Down 2", "description": "Toward viewer, passing", "direction": "down", "animGroup": "walk_down", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_down_3", "name": "Walk Down 3", "description": "Toward viewer, right foot", "direction": "down", "animGroup": "walk_down", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_down_4", "name": "Walk Down 4", "description": "Toward viewer, returning", "direction": "down", "animGroup": "walk_down", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_left_1", "name": "Walk Left 1", "description": "Left, left foot", "direction": "left", "animGroup": "walk_left", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_left_2", "name": "Walk Left 2", "description": "Left, passing", "direction": "left", "animGroup": "walk_left", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_left_3", "name": "Walk Left 3", "description": "Left, right foot", "direction": "left", "animGroup": "walk_left", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_left_4", "name": "Walk Left 4", "description": "Left, returning", "direction": "left", "animGroup": "walk_left", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_right_1", "name": "Walk Right 1", "description": "Right, left foot", "direction": "right", "animGroup": "walk_right", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_right_2", "name": "Walk Right 2", "description": "Right, passing", "direction": "right", "animGroup": "walk_right", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_right_3", "name": "Walk Right 3", "description": "Right, right foot", "direction": "right", "animGroup": "walk_right", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_right_4", "name": "Walk Right 4", "description": "Right, returning", "direction": "right", "animGroup": "walk_right", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_up_1", "name": "Walk Up 1", "description": "Away, left foot", "direction": "up", "animGroup": "walk_up", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_up_2", "name": "Walk Up 2", "description": "Away, passing", "direction": "up", "animGroup": "walk_up", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_up_3", "name": "Walk Up 3", "description": "Away, right foot", "direction": "up", "animGroup": "walk_up", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "walk_up_4", "name": "Walk Up 4", "description": "Away, returning", "direction": "up", "animGroup": "walk_up", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "run_cycles",
+        "name": "Run Cycles",
+        "description": "4-directional run (4 frames each)",
+        "dependsOn": "walk_cycles",
+        "required": true,
+        "poses": [
+          { "id": "run_down_1", "name": "Run Down 1", "description": "Toward viewer, push off", "direction": "down", "animGroup": "run_down", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_down_2", "name": "Run Down 2", "description": "Toward viewer, airborne", "direction": "down", "animGroup": "run_down", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_down_3", "name": "Run Down 3", "description": "Toward viewer, landing", "direction": "down", "animGroup": "run_down", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_down_4", "name": "Run Down 4", "description": "Toward viewer, recovery", "direction": "down", "animGroup": "run_down", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_left_1", "name": "Run Left 1", "description": "Left, push off", "direction": "left", "animGroup": "run_left", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_left_2", "name": "Run Left 2", "description": "Left, airborne", "direction": "left", "animGroup": "run_left", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_left_3", "name": "Run Left 3", "description": "Left, landing", "direction": "left", "animGroup": "run_left", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_left_4", "name": "Run Left 4", "description": "Left, recovery", "direction": "left", "animGroup": "run_left", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_right_1", "name": "Run Right 1", "description": "Right, push off", "direction": "right", "animGroup": "run_right", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_right_2", "name": "Run Right 2", "description": "Right, airborne", "direction": "right", "animGroup": "run_right", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_right_3", "name": "Run Right 3", "description": "Right, landing", "direction": "right", "animGroup": "run_right", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_right_4", "name": "Run Right 4", "description": "Right, recovery", "direction": "right", "animGroup": "run_right", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_up_1", "name": "Run Up 1", "description": "Away, push off", "direction": "up", "animGroup": "run_up", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_up_2", "name": "Run Up 2", "description": "Away, airborne", "direction": "up", "animGroup": "run_up", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_up_3", "name": "Run Up 3", "description": "Away, landing", "direction": "up", "animGroup": "run_up", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "run_up_4", "name": "Run Up 4", "description": "Away, recovery", "direction": "up", "animGroup": "run_up", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "attack",
+        "name": "Attack",
+        "description": "4-directional attack (3 frames each)",
+        "dependsOn": "directional_idles",
+        "required": true,
+        "poses": [
+          { "id": "attack_down_1", "name": "Attack Down – Windup", "description": "Facing viewer, pulling back", "direction": "down", "animGroup": "attack_down", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_down_2", "name": "Attack Down – Strike", "description": "Facing viewer, swinging", "direction": "down", "animGroup": "attack_down", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_down_3", "name": "Attack Down – Follow", "description": "Facing viewer, recovering", "direction": "down", "animGroup": "attack_down", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_left_1", "name": "Attack Left – Windup", "description": "Facing left, pulling back", "direction": "left", "animGroup": "attack_left", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_left_2", "name": "Attack Left – Strike", "description": "Facing left, swinging", "direction": "left", "animGroup": "attack_left", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_left_3", "name": "Attack Left – Follow", "description": "Facing left, recovering", "direction": "left", "animGroup": "attack_left", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_right_1", "name": "Attack Right – Windup", "description": "Facing right, pulling back", "direction": "right", "animGroup": "attack_right", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_right_2", "name": "Attack Right – Strike", "description": "Facing right, swinging", "direction": "right", "animGroup": "attack_right", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_right_3", "name": "Attack Right – Follow", "description": "Facing right, recovering", "direction": "right", "animGroup": "attack_right", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_up_1", "name": "Attack Up – Windup", "description": "Facing away, pulling back", "direction": "up", "animGroup": "attack_up", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_up_2", "name": "Attack Up – Strike", "description": "Facing away, swinging", "direction": "up", "animGroup": "attack_up", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "attack_up_3", "name": "Attack Up – Follow", "description": "Facing away, recovering", "direction": "up", "animGroup": "attack_up", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "cast_tech",
+        "name": "Cast / Tech Charge",
+        "description": "Spell or tech charge-up (3 frames)",
+        "dependsOn": "base_idle",
+        "required": false,
+        "poses": [
+          { "id": "cast_charge_1", "name": "Cast – Charge", "description": "Gathering energy", "direction": "down", "animGroup": "cast", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "cast_charge_2", "name": "Cast – Peak", "description": "Energy at full", "direction": "down", "animGroup": "cast", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "cast_charge_3", "name": "Cast – Release", "description": "Energy burst", "direction": "down", "animGroup": "cast", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": false }
+        ]
+      },
+      {
+        "id": "damage_ko",
+        "name": "Damage + KO",
+        "description": "Taking damage and knocked out (4 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "action_damage_1", "name": "Damage – Impact", "description": "Recoiling from hit", "direction": "down", "animGroup": "damage", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "action_damage_2", "name": "Damage – Stagger", "description": "Staggering backward", "direction": "down", "animGroup": "damage", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "action_ko_1", "name": "KO – Collapsing", "description": "Falling to ground", "direction": "down", "animGroup": "ko", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": true },
+          { "id": "action_ko_2", "name": "KO – Down", "description": "Lying defeated", "direction": "down", "animGroup": "ko", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": true }
+        ]
+      },
+      {
+        "id": "emotes",
+        "name": "Emotes",
+        "description": "Expressive emote poses",
+        "dependsOn": "base_idle",
+        "required": false,
+        "poses": [
+          { "id": "emote_surprise", "name": "Surprise", "description": "Startled, arms raised", "direction": "down", "animGroup": "emotes", "frameIndex": 0, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "emote_laugh", "name": "Laugh", "description": "Joyful, leaning back", "direction": "down", "animGroup": "emotes", "frameIndex": 1, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "emote_sit", "name": "Sit", "description": "Seated on ground", "direction": "down", "animGroup": "emotes", "frameIndex": 2, "spriteSize": { "w": 16, "h": 24 }, "required": false },
+          { "id": "emote_sleep", "name": "Sleep", "description": "Lying down asleep", "direction": "down", "animGroup": "emotes", "frameIndex": 3, "spriteSize": { "w": 16, "h": 24 }, "required": false }
+        ]
+      }
+    ],
+    "SIDE_SCROLLER": [
+      {
+        "id": "base_idle",
+        "name": "Base Idle",
+        "description": "Side-facing idle with breathing (2 frames)",
+        "dependsOn": null,
+        "required": true,
+        "poses": [
+          { "id": "side_idle_1", "name": "Idle 1", "description": "Side-facing ready stance", "direction": "side", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_idle_2", "name": "Idle 2", "description": "Slight breathing motion", "direction": "side", "animGroup": "idle", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true }
+        ]
+      },
+      {
+        "id": "run_cycle",
+        "name": "Run Cycle",
+        "description": "Full run animation (6 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "side_run_1", "name": "Run 1 – Contact", "description": "Front foot touching ground", "direction": "side", "animGroup": "run", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_run_2", "name": "Run 2 – Down", "description": "Body at lowest point", "direction": "side", "animGroup": "run", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_run_3", "name": "Run 3 – Passing", "description": "Back leg swings forward", "direction": "side", "animGroup": "run", "frameIndex": 2, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_run_4", "name": "Run 4 – Up", "description": "Body at highest point", "direction": "side", "animGroup": "run", "frameIndex": 3, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_run_5", "name": "Run 5 – Flight", "description": "Both feet off ground", "direction": "side", "animGroup": "run", "frameIndex": 4, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_run_6", "name": "Run 6 – Reach", "description": "Front leg extends", "direction": "side", "animGroup": "run", "frameIndex": 5, "spriteSize": { "w": 24, "h": 32 }, "required": true }
+        ]
+      },
+      {
+        "id": "jump",
+        "name": "Jump",
+        "description": "Jump arc (2 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "side_jump_rise", "name": "Jump – Rise", "description": "Ascending, legs tucked", "direction": "side", "animGroup": "jump", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_jump_fall", "name": "Jump – Fall", "description": "Descending, legs extended", "direction": "side", "animGroup": "jump", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true }
+        ]
+      },
+      {
+        "id": "attack_standing",
+        "name": "Attack Standing",
+        "description": "Standing attack (3 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "side_attack_1", "name": "Attack – Windup", "description": "Arm pulled back", "direction": "side", "animGroup": "attack_standing", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_attack_2", "name": "Attack – Strike", "description": "Arm extended", "direction": "side", "animGroup": "attack_standing", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_attack_3", "name": "Attack – Recover", "description": "Returning to idle", "direction": "side", "animGroup": "attack_standing", "frameIndex": 2, "spriteSize": { "w": 24, "h": 32 }, "required": true }
+        ]
+      },
+      {
+        "id": "attack_aerial",
+        "name": "Attack Aerial",
+        "description": "Mid-air attack (2 frames)",
+        "dependsOn": "jump",
+        "required": true,
+        "poses": [
+          { "id": "side_aerial_attack_1", "name": "Aerial Attack – Windup", "description": "Mid-air, arm back", "direction": "side", "animGroup": "attack_aerial", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_aerial_attack_2", "name": "Aerial Attack – Strike", "description": "Mid-air, slashing down", "direction": "side", "animGroup": "attack_aerial", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true }
+        ]
+      },
+      {
+        "id": "crouch",
+        "name": "Crouch + Crouch Attack",
+        "description": "Crouching and crouch attack (3 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "side_crouch", "name": "Crouch – Idle", "description": "Ducking low", "direction": "side", "animGroup": "crouch", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_crouch_attack_1", "name": "Crouch Attack – Windup", "description": "Crouching, arm back", "direction": "side", "animGroup": "crouch_attack", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_crouch_attack_2", "name": "Crouch Attack – Strike", "description": "Crouching, arm extended", "direction": "side", "animGroup": "crouch_attack", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true }
+        ]
+      },
+      {
+        "id": "damage_death",
+        "name": "Damage + Death",
+        "description": "Damage and death animations (4 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "side_damage_1", "name": "Damage – Impact", "description": "Flinching, knocked back", "direction": "side", "animGroup": "damage", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_damage_2", "name": "Damage – Recover", "description": "Returning to stance", "direction": "side", "animGroup": "damage", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_death_1", "name": "Death – Explode", "description": "Breaking apart", "direction": "side", "animGroup": "death", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": true },
+          { "id": "side_death_2", "name": "Death – Fade", "description": "Fading out", "direction": "side", "animGroup": "death", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": true }
+        ]
+      },
+      {
+        "id": "climb",
+        "name": "Climb / Ladder",
+        "description": "Ladder climbing (2 frames)",
+        "dependsOn": "base_idle",
+        "required": false,
+        "poses": [
+          { "id": "side_climb_1", "name": "Climb – Left Reach", "description": "Left hand up", "direction": null, "animGroup": "climb", "frameIndex": 0, "spriteSize": { "w": 24, "h": 32 }, "required": false },
+          { "id": "side_climb_2", "name": "Climb – Right Reach", "description": "Right hand up", "direction": null, "animGroup": "climb", "frameIndex": 1, "spriteSize": { "w": 24, "h": 32 }, "required": false }
+        ]
+      }
+    ],
+    "CREATURE": [
+      {
+        "id": "base_idle",
+        "name": "Base Idle",
+        "description": "Front-facing idle (2 frames)",
+        "dependsOn": null,
+        "required": true,
+        "poses": [
+          { "id": "creature_idle_1", "name": "Idle 1", "description": "Neutral stance, alert", "direction": "down", "animGroup": "idle", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": true },
+          { "id": "creature_idle_2", "name": "Idle 2", "description": "Subtle breathing motion", "direction": "down", "animGroup": "idle", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": true }
+        ]
+      },
+      {
+        "id": "attack",
+        "name": "Attack",
+        "description": "Attack animation (3 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "creature_attack_1", "name": "Attack – Telegraph", "description": "Rearing back", "direction": "down", "animGroup": "attack", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": true },
+          { "id": "creature_attack_2", "name": "Attack – Strike", "description": "Lunging forward", "direction": "down", "animGroup": "attack", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": true },
+          { "id": "creature_attack_3", "name": "Attack – Recover", "description": "Returning to neutral", "direction": "down", "animGroup": "attack", "frameIndex": 2, "spriteSize": { "w": 16, "h": 16 }, "required": true }
+        ]
+      },
+      {
+        "id": "damage",
+        "name": "Damage",
+        "description": "Taking damage (2 frames)",
+        "dependsOn": "base_idle",
+        "required": true,
+        "poses": [
+          { "id": "creature_damage_1", "name": "Damage – Flash", "description": "Hit flash, recoils", "direction": "down", "animGroup": "damage", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": true },
+          { "id": "creature_damage_2", "name": "Damage – Recover", "description": "Returning to stance", "direction": "down", "animGroup": "damage", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": true }
+        ]
+      },
+      {
+        "id": "death",
+        "name": "Death / Dissolve",
+        "description": "Death or dissolve (3 frames)",
+        "dependsOn": "damage",
+        "required": true,
+        "poses": [
+          { "id": "creature_death_1", "name": "Death – Begin", "description": "Starting to dissolve", "direction": "down", "animGroup": "death", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": true },
+          { "id": "creature_death_2", "name": "Death – Mid", "description": "Halfway dissolved", "direction": "down", "animGroup": "death", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": true },
+          { "id": "creature_death_3", "name": "Death – End", "description": "Fully dissolved", "direction": "down", "animGroup": "death", "frameIndex": 2, "spriteSize": { "w": 16, "h": 16 }, "required": true }
+        ]
+      },
+      {
+        "id": "overworld_movement",
+        "name": "Overworld Movement",
+        "description": "4-directional movement (3 frames each)",
+        "dependsOn": "base_idle",
+        "required": false,
+        "poses": [
+          { "id": "creature_walk_down_1", "name": "Move Down 1", "description": "Toward viewer, step 1", "direction": "down", "animGroup": "move_down", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_down_2", "name": "Move Down 2", "description": "Toward viewer, step 2", "direction": "down", "animGroup": "move_down", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_down_3", "name": "Move Down 3", "description": "Toward viewer, step 3", "direction": "down", "animGroup": "move_down", "frameIndex": 2, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_up_1", "name": "Move Up 1", "description": "Away, step 1", "direction": "up", "animGroup": "move_up", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_up_2", "name": "Move Up 2", "description": "Away, step 2", "direction": "up", "animGroup": "move_up", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_up_3", "name": "Move Up 3", "description": "Away, step 3", "direction": "up", "animGroup": "move_up", "frameIndex": 2, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_left_1", "name": "Move Left 1", "description": "Left, step 1", "direction": "left", "animGroup": "move_left", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_left_2", "name": "Move Left 2", "description": "Left, step 2", "direction": "left", "animGroup": "move_left", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_left_3", "name": "Move Left 3", "description": "Left, step 3", "direction": "left", "animGroup": "move_left", "frameIndex": 2, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_right_1", "name": "Move Right 1", "description": "Right, step 1", "direction": "right", "animGroup": "move_right", "frameIndex": 0, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_right_2", "name": "Move Right 2", "description": "Right, step 2", "direction": "right", "animGroup": "move_right", "frameIndex": 1, "spriteSize": { "w": 16, "h": 16 }, "required": false },
+          { "id": "creature_walk_right_3", "name": "Move Right 3", "description": "Right, step 3", "direction": "right", "animGroup": "move_right", "frameIndex": 2, "spriteSize": { "w": 16, "h": 16 }, "required": false }
+        ]
+      }
+    ]
+  }
+}
