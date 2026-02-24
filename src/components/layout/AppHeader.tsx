@@ -1,6 +1,12 @@
 import { useWorkflow } from '../../hooks/useWorkflow';
+import type { AppTab } from '../../App';
 
-export default function AppHeader() {
+interface Props {
+  tab: AppTab;
+  onTabChange: (tab: AppTab) => void;
+}
+
+export default function AppHeader({ tab, onTabChange }: Props) {
   const { state, setModel, testConnection } = useWorkflow();
 
   return (
@@ -9,6 +15,26 @@ export default function AppHeader() {
         <h1 className="app-title">Sprite Forge</h1>
         <span className="app-subtitle">Powered by Nano Banana</span>
       </div>
+      <nav className="header-nav">
+        <button
+          className={`nav-tab ${tab === 'designer' ? 'active' : ''}`}
+          onClick={() => onTabChange('designer')}
+        >
+          Designer
+        </button>
+        <button
+          className={`nav-tab ${tab === 'gallery' ? 'active' : ''}`}
+          onClick={() => onTabChange('gallery')}
+        >
+          Gallery
+        </button>
+        <button
+          className={`nav-tab ${tab === 'admin' ? 'active' : ''}`}
+          onClick={() => onTabChange('admin')}
+        >
+          Admin
+        </button>
+      </nav>
       <div className="header-controls">
         <div className="control-group">
           <label className="control-label">Model</label>

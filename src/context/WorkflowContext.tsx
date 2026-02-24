@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useRef, ReactNode, Dispatch } from 'react';
 import { WorkflowEngine } from '../lib/workflow';
-import type { Phase, Pose } from '../lib/poses';
+import type { Phase } from '../lib/poses';
 import SpriteApiClient from '../api/spriteApiClient';
 
 // --- Types ---
@@ -52,6 +52,7 @@ export interface WorkflowState {
   promptPreview: string;
   status: StatusMessage | null;
   totalPoses: number;
+  generationSetId: number | null;
 }
 
 // --- Actions ---
@@ -59,7 +60,7 @@ export interface WorkflowState {
 type Action =
   | { type: 'SET_MODEL'; model: string }
   | { type: 'SET_CHARACTER_CONFIG'; config: Partial<CharacterFormData> }
-  | { type: 'WORKFLOW_STARTED'; hierarchy: Phase[]; totalPoses: number }
+  | { type: 'WORKFLOW_STARTED'; hierarchy: Phase[]; totalPoses: number; generationSetId: number | null }
   | { type: 'GENERATE_START' }
   | { type: 'GENERATE_COMPLETE'; results: GeneratedOption[]; prompt: string }
   | { type: 'IMAGE_SELECTED'; index: number }
@@ -68,10 +69,12 @@ type Action =
   | { type: 'POSE_NAVIGATED'; phaseIndex: number; poseIndex: number; prompt: string }
   | { type: 'SPRITE_REMOVED'; poseId: string }
   | { type: 'WORKFLOW_COMPLETE' }
+  | { type: 'WORKFLOW_RESET' }
   | { type: 'SET_STATUS'; status: StatusMessage }
   | { type: 'CLEAR_STATUS' }
   | { type: 'SET_CUSTOM_INSTRUCTIONS'; text: string }
-  | { type: 'SYNC_ENGINE'; approvedSprites: ApprovedSprite[]; skippedPoseIds: string[] };
+  | { type: 'SYNC_ENGINE'; approvedSprites: ApprovedSprite[]; skippedPoseIds: string[] }
+  | { type: 'SET_GENERATION_SET_ID'; id: number };
 
 // --- Initial State ---
 
@@ -91,6 +94,7 @@ const initialState: WorkflowState = {
   promptPreview: '',
   status: null,
   totalPoses: 0,
+  generationSetId: null,
 };
 
 // --- Reducer ---
@@ -113,6 +117,7 @@ function workflowReducer(state: WorkflowState, action: Action): WorkflowState {
         selectedIndex: -1,
         approvedSprites: [],
         skippedPoseIds: [],
+        generationSetId: action.generationSetId,
       };
     case 'GENERATE_START':
       return { ...state, isGenerating: true, generatedOptions: [], selectedIndex: -1 };
@@ -145,6 +150,8 @@ function workflowReducer(state: WorkflowState, action: Action): WorkflowState {
       };
     case 'WORKFLOW_COMPLETE':
       return { ...state, isGenerating: false };
+    case 'WORKFLOW_RESET':
+      return { ...initialState, model: state.model };
     case 'SET_STATUS':
       return { ...state, status: action.status };
     case 'CLEAR_STATUS':
@@ -153,6 +160,8 @@ function workflowReducer(state: WorkflowState, action: Action): WorkflowState {
       return { ...state, customInstructions: action.text };
     case 'SYNC_ENGINE':
       return { ...state, approvedSprites: action.approvedSprites, skippedPoseIds: action.skippedPoseIds };
+    case 'SET_GENERATION_SET_ID':
+      return { ...state, generationSetId: action.id };
     default:
       return state;
   }

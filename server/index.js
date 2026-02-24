@@ -3,7 +3,11 @@ dotenv.config({ path: '.env.local' });
 
 import express from 'express';
 import cors from 'cors';
+import { getDb } from './db.js';
 import { createGenerateRouter } from './routes/generate.js';
+import { createDataRouter } from './routes/data.js';
+import { createGalleryRouter } from './routes/gallery.js';
+import { createAdminRouter } from './routes/admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,7 +21,15 @@ if (!apiKey) {
   process.exit(1);
 }
 
+// Initialize database
+const db = getDb();
+console.log('[Server] Database initialized.');
+
+// Mount routes
 app.use('/api', createGenerateRouter(apiKey));
+app.use('/api', createDataRouter(db));
+app.use('/api', createGalleryRouter(db));
+app.use('/api', createAdminRouter(db));
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

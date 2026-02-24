@@ -1,7 +1,14 @@
 import promptsData from '../data/prompts.json';
 
-const SUPER_PROMPTS: Record<string, string> = promptsData.superPrompts;
-const POSE_PROMPTS: Record<string, string> = promptsData.posePrompts;
+// Static fallback prompts (used if API hasn't loaded yet)
+let SUPER_PROMPTS: Record<string, string> = promptsData.superPrompts;
+let POSE_PROMPTS: Record<string, string> = promptsData.posePrompts;
+
+// Call this to update prompts with data from the API / DataContext
+export function setPromptData(superPrompts: Record<string, string>, posePrompts: Record<string, string>) {
+  SUPER_PROMPTS = superPrompts;
+  POSE_PROMPTS = posePrompts;
+}
 
 export function buildSuperPrompt(gameTypeId: string, spriteSize: { w: number; h: number }): string {
   const template = SUPER_PROMPTS[gameTypeId];
