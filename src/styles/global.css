@@ -626,6 +626,26 @@ body > #root {
   opacity: 0.6;
 }
 
+/* --- Pose Instructions (read-only) --- */
+.pose-instructions-wrapper {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+
+.pose-instructions-box {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  opacity: 0.8;
+  cursor: default;
+  user-select: text;
+}
+
 /* --- Custom Instructions --- */
 .custom-instructions-wrapper {
   flex-shrink: 0;
