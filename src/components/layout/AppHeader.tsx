@@ -6,7 +6,7 @@ export default function AppHeader() {
   return (
     <header className="app-header">
       <div className="header-branding">
-        <h1 className="app-title">Progressive Sprite Designer</h1>
+        <h1 className="app-title">Sprite Forge</h1>
         <span className="app-subtitle">Powered by Nano Banana</span>
       </div>
       <div className="header-controls">

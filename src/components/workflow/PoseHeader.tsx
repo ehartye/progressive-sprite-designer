@@ -7,7 +7,7 @@ export default function PoseHeader() {
     return (
       <div className="pose-header">
         <p className="empty-state-text center-empty-state">
-          Configure your character and start the workflow to begin generating sprites.
+          Choose your hero, equip their story, and forge a sprite sheet worthy of legend.
         </p>
       </div>
     );

@@ -107,6 +107,51 @@
       "description": "A gentle forest spirit NPC whose body is formed from intertwined bark, leaves, and moss. A rounded head with two large glowing green eyes and a small peaceful smile. Short stubby limbs with leaf-like hands. Small flowers and mushrooms sprout from its shoulders.",
       "equipment": "",
       "colorNotes": "Body is mottled brown bark with patches of vibrant green moss. Leaves are various greens from bright lime to deep forest green. Eyes glow soft emerald. Flowers are tiny white and pale yellow. Mushrooms are red with white spots. A faint green aura surrounds it."
+    },
+    {
+      "id": "voidmaw-parasite",
+      "name": "Voidmaw Parasite",
+      "gameType": "CREATURE",
+      "genre": "Sci-Fi Horror",
+      "description": "A writhing alien parasite with a segmented, chitinous body that ends in a lamprey-like circular mouth lined with concentric rings of needle-thin teeth. Four hooked appendages on each side used for latching onto hosts. A pulsing translucent sac on its back reveals dark fluid inside. Two vestigial eye-stalks protrude from the head segment.",
+      "equipment": "",
+      "colorNotes": "Oily black chitin with iridescent purple-green sheen. Mouth interior is raw pinkish-red. Back sac is translucent milky grey with dark violet fluid. Eye-stalks tip with dull yellow bioluminescent orbs. Hooked legs are dark gunmetal with rust-red tips."
+    },
+    {
+      "id": "fluxbot-drone",
+      "name": "Fluxbot Drone",
+      "gameType": "CREATURE",
+      "genre": "Sci-Fi",
+      "description": "A small hovering maintenance drone with a spherical chrome body, a single large blue optical lens, and three articulated tool-arms folding neatly underneath. Two anti-gravity fins rotate slowly on either side. A ring of status LEDs encircles its equator. Friendly and curious demeanor despite being fully mechanical.",
+      "equipment": "",
+      "colorNotes": "Polished chrome body with brushed steel panels. Main lens is bright cyan-blue with a white focal point. Anti-grav fins are matte dark grey with cyan edge lighting. LED ring cycles through soft blue and green. Tool-arms are gunmetal with orange safety markings at the joints."
+    },
+    {
+      "id": "spore-lurker",
+      "name": "Spore Lurker",
+      "gameType": "CREATURE",
+      "genre": "Sci-Fi Horror",
+      "description": "A fungal alien organism that resembles a crouching mass of fleshy tendrils topped with a cluster of bulbous spore pods. No visible eyes — instead it senses via vibration through fine cilia covering its surface. When threatened, the pods swell and release clouds of toxic green spores. Moves with an unsettling undulating crawl.",
+      "equipment": "",
+      "colorNotes": "Fleshy pale mauve and grey tendrils with sickly yellow-green veining. Spore pods are swollen dark purple with bright toxic-green tips that glow faintly. Cilia are near-white and shimmer slightly. Underside is wet-looking dark reddish-brown."
+    },
+    {
+      "id": "arc-jelly",
+      "name": "Arc Jelly",
+      "gameType": "CREATURE",
+      "genre": "Sci-Fi",
+      "description": "A bioluminescent deep-space jellyfish creature with a translucent dome-shaped bell and long trailing tentacles that crackle with electrical arcs. Inside the bell, a dense cluster of neural filaments pulses with light. Drifts gracefully through zero-gravity environments. Peaceful unless provoked, at which point its tentacles discharge powerful electric shocks.",
+      "equipment": "",
+      "colorNotes": "Bell is translucent pale blue-white with a soft inner glow. Neural filaments pulse between electric blue and bright white. Tentacles are near-transparent with vivid cyan-to-violet electrical arcs running along their length. Outer bell rim has a faint pink-magenta bioluminescent edge."
+    },
+    {
+      "id": "rustback-scavenger",
+      "name": "Rustback Scavenger",
+      "gameType": "CREATURE",
+      "genre": "Post-Apocalyptic Sci-Fi",
+      "description": "A six-legged insectoid scavenger built from salvaged mechanical parts fused with organic tissue. Its body is a corroded metal thorax with exposed wiring and a biological abdomen. A pair of mismatched optical sensors serve as eyes — one is a cracked red camera lens, the other a repurposed green scanner. Mandibles fashioned from sharpened scrap metal click constantly.",
+      "equipment": "",
+      "colorNotes": "Corroded burnt-orange and rust-brown metal plating over sickly grey-green organic tissue. Wiring is faded yellow and red. Camera-eye glows dim red, scanner-eye glows green. Mandibles are dull gunmetal. Legs alternate between rusted mechanical joints and pale fleshy segments. Abdomen has a faint sickly yellow bioluminescence."
     }
   ]
 }

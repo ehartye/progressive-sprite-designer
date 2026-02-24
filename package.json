@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",
-    "dev:server": "NODE_EXTRA_CA_CERTS=/Users/H468632/zscaler-root.pem NODE_TLS_REJECT_UNAUTHORIZED=0 node --watch server/index.js",
+    "dev:server": "node --watch server/index.js",
     "build": "vite build",
     "preview": "vite preview"
   },

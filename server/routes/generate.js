@@ -1,14 +1,5 @@
 import { Router } from 'express';
 
-/**
- * In corporate environments with Zscaler or similar proxies, Node.js may
- * not be able to reach Google's API. The /api/key endpoint lets the browser
- * call Google directly (since browser traffic goes through Zscaler's tunnel).
- *
- * The server-side /generate and /test-connection routes are kept as fallbacks
- * for environments where Node.js CAN reach Google.
- */
-
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
@@ -61,13 +52,6 @@ function parseGeminiResponse(data) {
 
 export function createGenerateRouter(apiKey) {
   const router = Router();
-
-  // --- Browser-direct mode: serve the API key so the browser can call Google ---
-  router.get('/key', (_req, res) => {
-    res.json({ key: apiKey });
-  });
-
-  // --- Server-proxy mode (fallback for non-Zscaler environments) ---
 
   router.post('/generate', async (req, res) => {
     try {
