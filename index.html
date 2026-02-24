@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Progressive Sprite Designer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-branding">
+      <h1 class="app-title">Progressive Sprite Designer</h1>
+      <span class="app-subtitle">Powered by Nano Banana</span>
+    </div>
+    <div class="header-controls">
+      <div class="control-group">
+        <label for="model-select" class="control-label">Model</label>
+        <select id="model-select" class="select-input">
+          <option value="gemini-2.5-flash-image">Nano Banana (Flash)</option>
+          <option value="gemini-3-pro-image-preview">Nano Banana Pro</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="api-key-input" class="control-label">API Key</label>
+        <div class="api-key-row">
+          <input type="password" id="api-key-input" class="text-input api-key-field" placeholder="Enter Gemini API key...">
+          <button id="btn-test-connection" class="btn btn-secondary btn-sm" title="Test API connection">Test</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <main class="app-layout">
+
+    <!-- Left Panel: Configuration & Progress -->
+    <aside id="config-panel" class="panel panel-left">
+
+      <!-- Character Config Section -->
+      <section class="panel-section">
+        <h2 class="section-title">Character Configuration</h2>
+
+        <div class="form-group">
+          <label for="game-type-select" class="form-label">Game Type</label>
+          <select id="game-type-select" class="select-input">
+            <option value="">-- Select game type --</option>
+            <option value="TOP_DOWN_RPG">Top-Down RPG (FF6 Style)</option>
+            <option value="ACTION_RPG">Action RPG (Chrono Trigger)</option>
+            <option value="SIDE_SCROLLER">Side-Scroller (Mega Man X)</option>
+            <option value="CREATURE">Creature / Enemy</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="char-name" class="form-label">Character Name</label>
+          <input type="text" id="char-name" class="text-input" placeholder="e.g., Elara the Ranger">
+        </div>
+
+        <div class="form-group">
+          <label for="char-description" class="form-label">Physical Appearance</label>
+          <textarea id="char-description" class="textarea-input" rows="3" placeholder="Describe the character's physical appearance..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="char-equipment" class="form-label">Equipment / Accessories</label>
+          <textarea id="char-equipment" class="textarea-input" rows="2" placeholder="e.g., leather armor, longbow, green cloak..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="char-colors" class="form-label">Color Notes</label>
+          <textarea id="char-colors" class="textarea-input" rows="2" placeholder="e.g., brown hair, green eyes, earth tones..."></textarea>
+        </div>
+
+        <button id="start-workflow-btn" class="btn btn-primary btn-full" disabled>
+          Start Workflow
+        </button>
+      </section>
+
+      <!-- Pose Tree Section -->
+      <section class="panel-section pose-tree-section">
+        <h2 class="section-title collapsible-header" data-target="pose-tree-container">
+          <span class="chevron">&#9656;</span>
+          Pose Workflow
+        </h2>
+        <div id="workflow-progress" class="progress-bar-container">
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+          <span class="progress-label">0 / 0 poses</span>
+        </div>
+        <div id="pose-tree-container" class="pose-tree">
+          <p class="empty-state-text">Start a workflow to see the pose tree.</p>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- Center Panel: Generation Workspace -->
+    <section class="panel panel-center">
+
+      <!-- Status Message -->
+      <div id="status-message" class="status-message hidden"></div>
+
+      <!-- Current Pose Header -->
+      <div id="current-pose-header" class="pose-header">
+        <p class="empty-state-text center-empty-state">Configure your character and start the workflow to begin generating sprites.</p>
+      </div>
+
+      <!-- Custom Instructions -->
+      <div class="custom-instructions-wrapper">
+        <label for="custom-instructions" class="form-label">Custom Instructions</label>
+        <textarea id="custom-instructions" class="textarea-input mono-text" rows="2" placeholder="Add custom instructions for this pose (optional)..."></textarea>
+      </div>
+
+      <!-- Generation Grid -->
+      <div id="generation-grid" class="generation-grid">
+        <div class="image-card placeholder-card">
+          <div class="image-card-inner shimmer"></div>
+          <div class="image-card-meta">
+            <span class="image-dim">--</span>
+          </div>
+        </div>
+        <div class="image-card placeholder-card">
+          <div class="image-card-inner shimmer"></div>
+          <div class="image-card-meta">
+            <span class="image-dim">--</span>
+          </div>
+        </div>
+        <div class="image-card placeholder-card">
+          <div class="image-card-inner shimmer"></div>
+          <div class="image-card-meta">
+            <span class="image-dim">--</span>
+          </div>
+        </div>
+        <div class="image-card placeholder-card">
+          <div class="image-card-inner shimmer"></div>
+          <div class="image-card-meta">
+            <span class="image-dim">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <button id="btn-prev" class="btn btn-secondary" disabled>&larr; Previous Pose</button>
+        <button id="btn-generate" class="btn btn-primary" disabled>Generate</button>
+        <button id="btn-approve" class="btn btn-success" disabled>Approve Selected</button>
+        <button id="btn-skip" class="btn btn-secondary" disabled>Skip Pose</button>
+        <button id="btn-next" class="btn btn-secondary" disabled>Next Pose &rarr;</button>
+      </div>
+
+      <!-- Prompt Preview -->
+      <section class="panel-section prompt-preview-section">
+        <h2 class="section-title collapsible-header" data-target="prompt-preview">
+          <span class="chevron">&#9656;</span>
+          Prompt Preview
+        </h2>
+        <textarea id="prompt-preview" class="textarea-input mono-text prompt-preview-area" rows="6" readonly placeholder="The constructed prompt will appear here..."></textarea>
+      </section>
+
+    </section>
+
+    <!-- Right Panel: Approved Gallery -->
+    <aside class="panel panel-right">
+
+      <section class="panel-section">
+        <h2 class="section-title">Approved Sprites</h2>
+        <div id="approved-gallery" class="approved-gallery">
+          <p class="empty-state-text">No approved sprites yet.</p>
+        </div>
+      </section>
+
+      <!-- Export Section -->
+      <section class="panel-section export-section">
+        <h2 class="section-title">Export</h2>
+        <button id="btn-download-all" class="btn btn-secondary btn-full" disabled>Download All Sprites (.zip)</button>
+        <button id="btn-download-sheet" class="btn btn-secondary btn-full" disabled>Download Sprite Sheet</button>
+      </section>
+
+    </aside>
+
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
