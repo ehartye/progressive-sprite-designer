@@ -5,45 +5,57 @@ export function createGalleryRouter(db) {
 
   // GET /api/gallery — list all generation sets with key image
   router.get('/gallery', (req, res) => {
-    const sets = db.prepare(
-      'SELECT * FROM generation_sets ORDER BY updated_at DESC'
+    const rows = db.prepare(
+      `SELECT
+         gs.id,
+         gs.character_name,
+         gs.game_type,
+         gs.description,
+         gs.equipment,
+         gs.color_notes,
+         gs.model,
+         gs.created_at,
+         gs.updated_at,
+         COALESCE(sc.sprite_count, 0) AS sprite_count,
+         key_sprite.image_data AS key_image_data,
+         key_sprite.mime_type AS key_image_mime_type,
+         key_sprite.pose_name AS key_image_pose_name
+       FROM generation_sets AS gs
+       LEFT JOIN (
+         SELECT generation_set_id, COUNT(*) AS sprite_count
+         FROM sprites
+         GROUP BY generation_set_id
+       ) AS sc ON sc.generation_set_id = gs.id
+       LEFT JOIN sprites AS key_sprite
+         ON key_sprite.id = (
+           SELECT s2.id
+           FROM sprites AS s2
+           WHERE s2.generation_set_id = gs.id
+           ORDER BY (s2.pose_id LIKE '%idle%') DESC, s2.created_at ASC
+           LIMIT 1
+         )
+       ORDER BY gs.updated_at DESC`
     ).all();
 
-    const result = sets.map(set => {
-      // Key image: first idle pose sprite, or first sprite chronologically
-      const idleSprite = db.prepare(
-        `SELECT id, pose_id, pose_name, image_data, mime_type, created_at
-         FROM sprites WHERE generation_set_id = ? AND pose_id LIKE '%idle%'
-         ORDER BY created_at ASC LIMIT 1`
-      ).get(set.id);
-
-      const firstSprite = idleSprite || db.prepare(
-        `SELECT id, pose_id, pose_name, image_data, mime_type, created_at
-         FROM sprites WHERE generation_set_id = ? ORDER BY created_at ASC LIMIT 1`
-      ).get(set.id);
-
-      const spriteCount = db.prepare(
-        'SELECT COUNT(*) as c FROM sprites WHERE generation_set_id = ?'
-      ).get(set.id);
-
-      return {
-        id: set.id,
-        characterName: set.character_name,
-        gameType: set.game_type,
-        description: set.description,
-        equipment: set.equipment,
-        colorNotes: set.color_notes,
-        model: set.model,
-        spriteCount: spriteCount.c,
-        createdAt: set.created_at,
-        updatedAt: set.updated_at,
-        keyImage: firstSprite ? {
-          data: firstSprite.image_data,
-          mimeType: firstSprite.mime_type,
-          poseName: firstSprite.pose_name,
-        } : null,
-      };
-    });
+    const result = rows.map(row => ({
+      id: row.id,
+      characterName: row.character_name,
+      gameType: row.game_type,
+      description: row.description,
+      equipment: row.equipment,
+      colorNotes: row.color_notes,
+      model: row.model,
+      spriteCount: row.sprite_count,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      keyImage: row.key_image_data != null
+        ? {
+            data: row.key_image_data,
+            mimeType: row.key_image_mime_type,
+            poseName: row.key_image_pose_name,
+          }
+        : null,
+    }));
 
     res.json(result);
   });

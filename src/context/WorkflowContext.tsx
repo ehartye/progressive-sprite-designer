@@ -174,6 +174,7 @@ interface WorkflowContextValue {
   dispatch: Dispatch<Action>;
   engineRef: React.MutableRefObject<WorkflowEngine | null>;
   clientRef: React.MutableRefObject<SpriteApiClient>;
+  spriteDbIdsRef: React.MutableRefObject<Map<string, number>>;
 }
 
 const WorkflowContext = createContext<WorkflowContextValue | null>(null);
@@ -182,9 +183,10 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(workflowReducer, initialState);
   const clientRef = useRef(new SpriteApiClient(initialState.model));
   const engineRef = useRef<WorkflowEngine | null>(null);
+  const spriteDbIdsRef = useRef<Map<string, number>>(new Map());
 
   return (
-    <WorkflowContext.Provider value={{ state, dispatch, engineRef, clientRef }}>
+    <WorkflowContext.Provider value={{ state, dispatch, engineRef, clientRef, spriteDbIdsRef }}>
       {children}
     </WorkflowContext.Provider>
   );

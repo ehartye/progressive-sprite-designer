@@ -1,4 +1,4 @@
-import { getPoseHierarchy, getTotalPoseCount, getTotalPoseCountFromHierarchy, GAME_TYPES, Phase, Pose, SpriteSize } from './poses';
+import { getPoseHierarchy, getTotalPoseCountFromHierarchy, GAME_TYPES, Phase, Pose, SpriteSize } from './poses';
 import { buildFullPrompt } from './prompts';
 
 interface ImageData {

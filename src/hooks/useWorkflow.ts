@@ -1,13 +1,13 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useWorkflowContext, ApprovedSprite, StatusMessage } from '../context/WorkflowContext';
 import { WorkflowEngine } from '../lib/workflow';
-import { GAME_TYPES, getTotalPoseCount, getTotalPoseCountFromHierarchy } from '../lib/poses';
+import { GAME_TYPES, getTotalPoseCountFromHierarchy } from '../lib/poses';
 import type { Phase } from '../lib/poses';
 import { buildFullPrompt } from '../lib/prompts';
 import { createGalleryEntry, addSpriteToGallery, removeSpriteFromGallery, fetchGalleryEntry, fetchHierarchy } from '../api/dataClient';
 
 export function useWorkflow() {
-  const { state, dispatch, engineRef, clientRef } = useWorkflowContext();
+  const { state, dispatch, engineRef, clientRef, spriteDbIdsRef } = useWorkflowContext();
   const statusTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Auto-dismiss status for info/success
@@ -158,7 +158,7 @@ export function useWorkflow() {
       timestamp: data.timestamp,
       prompt: data.prompt,
       modelId: data.modelId,
-      customInstructions: data.customInstructions,
+      customInstructions: state.customInstructions,
       referenceImageIds: data.referenceImageIds,
     };
 
@@ -167,7 +167,7 @@ export function useWorkflow() {
     // Auto-save to DB
     if (state.generationSetId) {
       try {
-        await addSpriteToGallery(state.generationSetId, {
+        const result = await addSpriteToGallery(state.generationSetId, {
           poseId: sprite.poseId,
           poseName: sprite.poseName,
           imageData: sprite.imageData,
@@ -177,13 +177,15 @@ export function useWorkflow() {
           customInstructions: sprite.customInstructions,
           referenceImageIds: sprite.referenceImageIds,
         });
+        // Cache the DB sprite ID to avoid fetching the full gallery on removal
+        spriteDbIdsRef.current.set(sprite.poseId, result.id);
       } catch (err) {
         console.warn('Failed to save sprite to gallery:', err);
       }
     }
 
     setStatus('Sprite approved!', 'success');
-  }, [dispatch, engineRef, setStatus, state.generationSetId]);
+  }, [dispatch, engineRef, setStatus, state.generationSetId, state.customInstructions, spriteDbIdsRef]);
 
   const skip = useCallback(() => {
     const engine = engineRef.current;
@@ -277,20 +279,24 @@ export function useWorkflow() {
     if (engine) engine.removeApproval(poseId);
     dispatch({ type: 'SPRITE_REMOVED', poseId });
 
-    // Also remove from DB - we need to find the sprite ID
-    // For simplicity, we accept this may not find the sprite (fire-and-forget)
+    // Also remove from DB (fire-and-forget). Use cached sprite ID to avoid fetching
+    // the full gallery entry (including base64 image data for every sprite).
     if (state.generationSetId) {
-      try {
-        const entry = await fetchGalleryEntry(state.generationSetId);
-        const dbSprite = entry.sprites.find(s => s.poseId === poseId);
-        if (dbSprite) {
-          await removeSpriteFromGallery(state.generationSetId, dbSprite.id);
-        }
-      } catch { /* ignore */ }
+      const cachedId = spriteDbIdsRef.current.get(poseId);
+      if (cachedId !== undefined) {
+        spriteDbIdsRef.current.delete(poseId);
+        removeSpriteFromGallery(state.generationSetId, cachedId).catch(() => { /* ignore */ });
+      } else {
+        // Fallback: locate the sprite ID via gallery entry if it wasn't cached
+        fetchGalleryEntry(state.generationSetId).then(entry => {
+          const dbSprite = entry.sprites.find(s => s.poseId === poseId);
+          if (dbSprite) removeSpriteFromGallery(state.generationSetId!, dbSprite.id).catch(() => { /* ignore */ });
+        }).catch(() => { /* ignore */ });
+      }
     }
 
     setStatus('Sprite removed from approved.', 'info');
-  }, [dispatch, engineRef, setStatus, state.generationSetId]);
+  }, [dispatch, engineRef, setStatus, state.generationSetId, spriteDbIdsRef]);
 
   const setCustomInstructions = useCallback((text: string) => {
     dispatch({ type: 'SET_CUSTOM_INSTRUCTIONS', text });
@@ -300,8 +306,8 @@ export function useWorkflow() {
     dispatch({ type: 'SET_CHARACTER_CONFIG', config });
   }, [dispatch]);
 
-  // Resume workflow from a gallery entry
-  const resumeFromGallery = useCallback(async (galleryId: number) => {
+  // Resume workflow from a gallery entry. Returns true on success, false on failure.
+  const resumeFromGallery = useCallback(async (galleryId: number): Promise<boolean> => {
     try {
       setStatus('Loading gallery entry...', 'info');
       const entry = await fetchGalleryEntry(galleryId);
@@ -332,8 +338,9 @@ export function useWorkflow() {
       const engine = new WorkflowEngine(clientRef.current, entry.gameType, hierarchy);
       engineRef.current = engine;
 
-      // Restore approved sprites into the engine
+      // Restore approved sprites into the engine and populate the DB ID cache
       const approvedSprites: ApprovedSprite[] = [];
+      spriteDbIdsRef.current.clear();
       for (const sprite of entry.sprites) {
         const spriteData = {
           imageData: sprite.imageData,
@@ -347,6 +354,7 @@ export function useWorkflow() {
         };
         engine.approvedSprites.set(sprite.poseId, spriteData);
         approvedSprites.push({ poseId: sprite.poseId, ...spriteData });
+        spriteDbIdsRef.current.set(sprite.poseId, sprite.id);
       }
 
       dispatch({
@@ -378,11 +386,13 @@ export function useWorkflow() {
         `Resumed "${entry.characterName}" — ${approvedSprites.length} sprite(s) loaded`,
         'success',
       );
+      return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to resume';
       setStatus(`Resume failed: ${message}`, 'error');
+      return false;
     }
-  }, [dispatch, clientRef, engineRef, setStatus]);
+  }, [dispatch, clientRef, engineRef, setStatus, spriteDbIdsRef]);
 
   const resetWorkflow = useCallback(() => {
     engineRef.current = null;

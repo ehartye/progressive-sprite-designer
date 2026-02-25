@@ -29,7 +29,19 @@ console.log('[Server] Database initialized.');
 app.use('/api', createGenerateRouter(apiKey));
 app.use('/api', createDataRouter(db));
 app.use('/api', createGalleryRouter(db));
-app.use('/api', createAdminRouter(db));
+
+// Admin routes are protected by an optional API key when ADMIN_API_KEY is set
+function adminAuth(req, res, next) {
+  const adminKey = process.env.ADMIN_API_KEY;
+  if (!adminKey) return next(); // No key configured — allow access (local dev)
+  const provided = req.get('x-admin-key');
+  if (!provided || provided !== adminKey) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+app.use('/api', adminAuth, createAdminRouter(db));
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

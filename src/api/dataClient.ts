@@ -214,7 +214,7 @@ export async function deleteCharacter(id: string): Promise<void> {
 export async function updatePose(gameType: string, poseId: string, data: Partial<{
   name: string;
   description: string;
-  direction: string;
+  direction: string | null;
   animGroup: string;
   frameIndex: number;
   spriteWidth: number;

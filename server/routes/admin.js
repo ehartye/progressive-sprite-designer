@@ -57,20 +57,27 @@ export function createAdminRouter(db) {
     const existing = db.prepare('SELECT * FROM poses WHERE pose_id = ? AND game_type = ?').get(req.params.poseId, req.params.gameType);
     if (!existing) return res.status(404).json({ error: 'Pose not found' });
 
-    const { name, description, direction, animGroup, frameIndex, spriteWidth, spriteHeight, required } = req.body;
+    const { name, description, animGroup, frameIndex, spriteWidth, spriteHeight, required } = req.body;
+    // direction may be explicitly null to clear the field, so resolve it separately
+    const direction = 'direction' in req.body ? req.body.direction : undefined;
 
     db.prepare(
       `UPDATE poses SET
         name = COALESCE(?, name),
         description = COALESCE(?, description),
-        direction = COALESCE(?, direction),
+        direction = ${direction !== undefined ? '?' : 'direction'},
         anim_group = COALESCE(?, anim_group),
         frame_index = COALESCE(?, frame_index),
         sprite_width = COALESCE(?, sprite_width),
         sprite_height = COALESCE(?, sprite_height),
         required = COALESCE(?, required)
        WHERE pose_id = ? AND game_type = ?`
-    ).run(name, description, direction, animGroup, frameIndex, spriteWidth, spriteHeight, required, req.params.poseId, req.params.gameType);
+    ).run(
+      ...(direction !== undefined
+        ? [name, description, direction, animGroup, frameIndex, spriteWidth, spriteHeight, required, req.params.poseId, req.params.gameType]
+        : [name, description, animGroup, frameIndex, spriteWidth, spriteHeight, required, req.params.poseId, req.params.gameType]
+      )
+    );
 
     res.json({ success: true });
   });
@@ -80,7 +87,7 @@ export function createAdminRouter(db) {
   // PUT /api/admin/pose-prompts/:poseId — update pose prompt
   router.put('/admin/pose-prompts/:poseId', (req, res) => {
     const { promptText } = req.body;
-    if (!promptText) return res.status(400).json({ error: 'promptText is required' });
+    if (promptText == null) return res.status(400).json({ error: 'promptText is required' });
 
     const result = db.prepare(
       `INSERT INTO pose_prompts (pose_id, prompt_text) VALUES (?, ?)
@@ -95,7 +102,7 @@ export function createAdminRouter(db) {
   // PUT /api/admin/super-prompts/:gameType — update super prompt
   router.put('/admin/super-prompts/:gameType', (req, res) => {
     const { promptTemplate } = req.body;
-    if (!promptTemplate) return res.status(400).json({ error: 'promptTemplate is required' });
+    if (promptTemplate == null) return res.status(400).json({ error: 'promptTemplate is required' });
 
     const result = db.prepare(
       `INSERT INTO super_prompts (game_type, prompt_template) VALUES (?, ?)
