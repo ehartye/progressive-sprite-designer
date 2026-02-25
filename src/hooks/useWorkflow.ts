@@ -147,6 +147,11 @@ export function useWorkflow() {
     const engine = engineRef.current;
     if (!engine) return;
 
+    // Capture pose identity before any async work to prevent race conditions
+    // if the user navigates during the downsample await.
+    const pose = engine.getCurrentPose();
+    const poseId = pose?.id ?? '';
+
     const data = engine.approveSelected();
     if (!data) {
       setStatus('No image selected to approve.', 'warning');
@@ -158,10 +163,10 @@ export function useWorkflow() {
     data.imageData = downsized.data;
     data.mimeType = downsized.mimeType;
     // Also update the engine's copy so in-memory references stay small
-    engine.approvedSprites.set(engine.getCurrentPose()?.id || '', data);
+    engine.approvedSprites.set(poseId, data);
 
     const sprite: ApprovedSprite = {
-      poseId: engine.getCurrentPose()?.id || '',
+      poseId,
       poseName: data.poseName ?? 'Unknown',
       imageData: data.imageData,
       mimeType: data.mimeType,
@@ -258,11 +263,24 @@ export function useWorkflow() {
           dispatch({ type: 'IMAGE_SELECTED', index: 0 });
         }
       } else {
-        dispatch({ type: 'WORKFLOW_COMPLETE' });
-        setStatus(
-          `Workflow complete! ${engine.getProgress().approved} sprites approved, ${engine.getProgress().skipped} skipped.`,
-          'success',
-        );
+        // advanceToNextPose only scans forward — wrap around from the beginning
+        // to find unapproved poses that may be before the current position
+        const { done: reallyDone } = engine.advanceToNextUnapprovedPose();
+        if (reallyDone) {
+          dispatch({ type: 'WORKFLOW_COMPLETE' });
+          setStatus(
+            `Workflow complete! ${engine.getProgress().approved} sprites approved, ${engine.getProgress().skipped} skipped.`,
+            'success',
+          );
+        } else {
+          const prompt = buildPromptPreview(engine, state.characterConfig);
+          dispatch({
+            type: 'POSE_NAVIGATED',
+            phaseIndex: engine.currentPhaseIndex,
+            poseIndex: engine.currentPoseIndex,
+            prompt,
+          });
+        }
       }
     } else {
       const prompt = buildPromptPreview(engine, state.characterConfig);
