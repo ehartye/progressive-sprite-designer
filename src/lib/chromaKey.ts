@@ -1,6 +1,7 @@
 /**
  * Chroma-key (color removal) for sprite images.
- * Removes magenta/pink backgrounds by setting matching pixels to transparent.
+ * Removes magenta/pink backgrounds using soft alpha blending
+ * to avoid pink fringing and holes in sprites.
  */
 
 /**
@@ -26,11 +27,21 @@ export function base64ToImageData(
 }
 
 /**
- * Apply chroma-key removal to ImageData.
- * Pixels within `tolerance` Manhattan distance (sum of absolute differences) of the target color get alpha=0.
+ * Apply chroma-key removal to ImageData with soft alpha edges.
+ *
+ * Uses two thresholds:
+ *   - Core threshold (scales with tolerance): pixels within this distance
+ *     from the key color become fully transparent.
+ *   - Soft edge (fixed 60-unit band beyond core): alpha ramps linearly
+ *     from 0 to full, giving smooth anti-aliased edges without darkening
+ *     the rest of the sprite.
+ *
+ * No color despill is applied — the soft alpha naturally fades out the
+ * key color contribution at edges, which looks correct when composited
+ * over any background.
  *
  * Default target: #FF00FF (magenta) — the standard sprite sheet background.
- * Tolerance 0 = no removal. Tolerance 40 = reasonable default. Max ~128.
+ * Tolerance 0 = no removal. Higher values remove more aggressively.
  */
 export function applyChromaKey(
   source: ImageData,
@@ -39,23 +50,41 @@ export function applyChromaKey(
   keyG = 0,
   keyB = 255,
 ): ImageData {
-  if (tolerance <= 0) return source;
+  if (tolerance <= 0) return new ImageData(
+    new Uint8ClampedArray(source.data),
+    source.width,
+    source.height,
+  );
 
   const out = new ImageData(
     new Uint8ClampedArray(source.data),
     source.width,
     source.height,
   );
-  const threshold = tolerance * 3; // sum-of-abs-differences threshold
   const data = out.data;
 
+  // Core threshold scales with tolerance: pixels within this are fully removed.
+  // Soft edge is a fixed-width band beyond the core — narrow enough to only
+  // affect the actual anti-aliased boundary pixels, not the sprite body.
+  const coreThreshold = tolerance * 3;
+  const SOFT_EDGE_WIDTH = 60;
+  const outerThreshold = coreThreshold + SOFT_EDGE_WIDTH;
+
   for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a === 0) continue;
+
     const dist =
       Math.abs(data[i] - keyR) +
       Math.abs(data[i + 1] - keyG) +
       Math.abs(data[i + 2] - keyB);
-    if (dist < threshold) {
-      data[i + 3] = 0; // transparent
+
+    if (dist < coreThreshold) {
+      data[i + 3] = 0;
+    } else if (dist < outerThreshold) {
+      // Soft edge: linear ramp from transparent to original alpha
+      const t = (dist - coreThreshold) / SOFT_EDGE_WIDTH;
+      data[i + 3] = Math.round(t * a);
     }
   }
 

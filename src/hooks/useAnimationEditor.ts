@@ -44,7 +44,7 @@ type AnimAction =
 const initialState: AnimEditorState = {
   selectedAnimGroup: '',
   frameAdjustments: {},
-  chromaTolerance: 100,
+  chromaTolerance: 80,
   msPerFrame: {},
   loopGroups: {},
   isPlaying: true,
