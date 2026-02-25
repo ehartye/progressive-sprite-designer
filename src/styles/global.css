@@ -2014,33 +2014,83 @@ img.sprite-image {
   margin-right: 4px;
 }
 
-/* --- Frame Strip --- */
+/* --- Frame Detail Panel --- */
 
-.anim-frame-strip {
+.anim-frame-detail {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 12px;
-}
-
-.anim-frame-card {
-  display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 10px;
+  padding: 12px;
   background: var(--bg-card);
   border: 2px solid var(--border);
   border-radius: var(--radius);
-  transition: border-color var(--transition-fast), opacity var(--transition-fast);
-  cursor: grab;
 }
 
-.anim-frame-card:active {
-  cursor: grabbing;
+.anim-frame-detail-canvas {
+  width: 192px;
+  height: 192px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background:
+    repeating-conic-gradient(
+      rgba(255, 255, 255, 0.04) 0% 25%,
+      transparent 0% 50%
+    ) 0 0 / 8px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.anim-frame-detail-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.anim-frame-detail-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+/* --- Frame Strip (thumbnail gallery) --- */
+
+.anim-frame-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.anim-frame-thumb-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.anim-frame-thumb-card:hover {
+  border-color: var(--border-light);
+}
+
+.anim-frame-thumb-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 99, 102, 241), 0.3);
 }
 
 .anim-frame-dragging {
   opacity: 0.35;
+  cursor: grabbing;
 }
 
 .anim-frame-drag-over {
@@ -2048,20 +2098,9 @@ img.sprite-image {
   box-shadow: 0 0 0 2px var(--accent);
 }
 
-.anim-frame-card:hover {
-  border-color: var(--border-light);
-}
-
-.anim-frame-thumb-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
 .anim-frame-thumb {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   background:
@@ -2077,14 +2116,6 @@ img.sprite-image {
   font-size: 0.68rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
-}
-
-/* --- Sliders --- */
-
-.anim-frame-sliders {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
 }
 
 .anim-slider-row {
@@ -2184,6 +2215,37 @@ img.sprite-image {
   padding-top: 0.75rem;
   margin-top: 0.75rem;
   border-top: 1px solid var(--border);
+}
+
+/* --- Loading progress in animation modal --- */
+
+.anim-load-progress-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 280px;
+}
+
+.anim-load-bar-lg {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.anim-load-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.15s ease-out;
+}
+
+.anim-load-text-lg {
+  font-size: 0.9rem;
+  color: var(--text-muted);
 }
 
 /* --- Onion skin checkbox --- */

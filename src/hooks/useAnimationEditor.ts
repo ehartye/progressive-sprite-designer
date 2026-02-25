@@ -171,12 +171,16 @@ export function useAnimationEditor() {
 
   // Track image loading via state (not ref) so chroma effect re-runs
   const [imagesReady, setImagesReady] = useState(false);
+  const [loadProgress, setLoadProgress] = useState({ loaded: 0, total: 0 });
 
   // Persistent processed images ref — survives across effect cycles
   const processedImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   // Track chroma processing to avoid redundant work
   const chromaProcessingRef = useRef<Map<string, number>>(new Map()); // poseId → tolerance
+
+  // Bump to trigger re-renders when chroma processing completes
+  const [chromaVersion, setChromaVersion] = useState(0);
 
   // --- Derived data ---
 
@@ -233,6 +237,7 @@ export function useAnimationEditor() {
     [orderedGroupedFrames, state.selectedAnimGroup],
   );
 
+
   // --- Initialize groups on first render / when groups change ---
 
   const animGroupsKey = animGroups.join(',');
@@ -253,13 +258,24 @@ export function useAnimationEditor() {
 
   useEffect(() => {
     let cancelled = false;
+    const total = approvedSprites.length;
+    setLoadProgress({ loaded: 0, total });
+    setImagesReady(false);
+
+    if (total === 0) return;
 
     const loadAll = async () => {
       const imageMap = new Map<string, HTMLImageElement>();
+      let loaded = 0;
+
       const promises = approvedSprites.map(sprite => {
         return new Promise<[string, HTMLImageElement]>((resolve, reject) => {
           const img = new Image();
-          img.onload = () => resolve([sprite.poseId, img]);
+          img.onload = () => {
+            loaded++;
+            if (!cancelled) setLoadProgress({ loaded, total });
+            resolve([sprite.poseId, img]);
+          };
           img.onerror = () => reject(new Error(`Failed to load ${sprite.poseId}`));
           img.src = `data:${sprite.mimeType};base64,${sprite.imageData}`;
         });
@@ -317,6 +333,7 @@ export function useAnimationEditor() {
 
       if (!cancelled && changed) {
         engineRef.current?.setProcessedImages(new Map(processedImagesRef.current));
+        setChromaVersion(v => v + 1);
       }
     };
 
@@ -433,6 +450,10 @@ export function useAnimationEditor() {
     dispatch({ type: 'REORDER_FRAMES', group, orderedPoseIds });
   }, []);
 
+  const getProcessedImage = useCallback((poseId: string): HTMLImageElement | null => {
+    return processedImagesRef.current.get(poseId) ?? null;
+  }, []);
+
   // --- Export functions ---
 
   const exportMetadata = useCallback(() => {
@@ -537,6 +558,14 @@ export function useAnimationEditor() {
     // Export
     exportMetadata,
     exportChromaSheet,
+
+    // Chroma
+    chromaVersion,
+    getProcessedImage,
+
+    // Loading state
+    imagesReady,
+    loadProgress,
 
     // Workflow data (for frame thumbnails)
     approvedSprites,

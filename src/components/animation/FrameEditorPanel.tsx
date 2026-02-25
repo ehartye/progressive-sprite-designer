@@ -1,4 +1,7 @@
+import { useState, useEffect, useRef } from 'react';
 import type { AnimationEditorAPI } from '../../hooks/useAnimationEditor';
+import type { FrameAdjust } from '../../lib/animationEngine';
+import { DEFAULT_FRAME_ADJUST } from '../../lib/animationEngine';
 import FrameStrip from './FrameStrip';
 
 interface Props {
@@ -21,10 +24,77 @@ export default function FrameEditorPanel({ api }: Props) {
     exportMetadata,
     exportChromaSheet,
     approvedSprites,
+    chromaVersion,
+    getProcessedImage,
   } = api;
+
+  const [selectedFrameId, setSelectedFrameId] = useState('');
+  const detailCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const groupMs = state.msPerFrame[selectedAnimGroup] ?? 133;
   const groupLoop = state.loopGroups[selectedAnimGroup] ?? true;
+
+  // Synchronous derivation: if selected frame isn't in current group, snap to first frame
+  const activeFrameId = framesForSelectedGroup.some(f => f.poseId === selectedFrameId)
+    ? selectedFrameId
+    : (framesForSelectedGroup[0]?.poseId ?? '');
+
+  // Keep local state in sync (so clicking a thumb persists)
+  if (activeFrameId !== selectedFrameId) {
+    setSelectedFrameId(activeFrameId);
+  }
+
+  const selectedFrame = framesForSelectedGroup.find(f => f.poseId === activeFrameId);
+  const selectedSprite = selectedFrame
+    ? approvedSprites.find(s => s.poseId === selectedFrame.poseId)
+    : null;
+  const selectedAdj = selectedFrame
+    ? (state.frameAdjustments[selectedFrame.poseId] ?? DEFAULT_FRAME_ADJUST)
+    : DEFAULT_FRAME_ADJUST;
+
+  // Draw selected frame on the detail canvas — prefer chroma-processed image
+  useEffect(() => {
+    const canvas = detailCanvasRef.current;
+    if (!canvas || !selectedSprite) return;
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false;
+
+    // Try chroma-processed image first
+    const processed = getProcessedImage(selectedSprite.poseId);
+    if (processed) {
+      const scale = Math.min(canvas.width / processed.naturalWidth, canvas.height / processed.naturalHeight);
+      const w = processed.naturalWidth * scale;
+      const h = processed.naturalHeight * scale;
+      const x = (canvas.width - w) / 2;
+      const y = (canvas.height - h) / 2;
+      ctx.drawImage(processed, x, y, w, h);
+      return;
+    }
+
+    // Fallback: load from raw base64
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      const x = (canvas.width - w) / 2;
+      const y = (canvas.height - h) / 2;
+      ctx.drawImage(img, x, y, w, h);
+    };
+    img.src = `data:${selectedSprite.mimeType};base64,${selectedSprite.imageData}`;
+
+    return () => { cancelled = true; };
+  }, [selectedSprite, chromaVersion, getProcessedImage]);
+
+  const handleSlider = (key: keyof FrameAdjust) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedFrame) return;
+    setFrameAdjust(selectedFrame.poseId, { ...selectedAdj, [key]: Number(e.target.value) });
+  };
 
   return (
     <div className="anim-editor-pane">
@@ -88,13 +158,36 @@ export default function FrameEditorPanel({ api }: Props) {
         </div>
       </div>
 
-      {/* Frame list with sliders */}
+      {/* Selected frame detail panel — image on top, sliders below full width */}
+      {selectedFrame && selectedSprite ? (
+        <div className="anim-frame-detail">
+          <canvas
+            ref={detailCanvasRef}
+            width={192}
+            height={192}
+            className="anim-frame-detail-canvas"
+          />
+          <div className="anim-frame-detail-sliders">
+            <span className="anim-frame-detail-label">Frame #{selectedFrame.frameIndex}</span>
+            <SliderRow label="X Pos" min={-16} max={16} step={1} value={selectedAdj.dx} onChange={handleSlider('dx')} />
+            <SliderRow label="Y Pos" min={-16} max={16} step={1} value={selectedAdj.dy} onChange={handleSlider('dy')} />
+            <SliderRow label="X Scale" min={0.5} max={2} step={0.05} value={selectedAdj.scaleX} onChange={handleSlider('scaleX')} />
+            <SliderRow label="Y Scale" min={0.5} max={2} step={0.05} value={selectedAdj.scaleY} onChange={handleSlider('scaleY')} />
+            <button className="btn btn-secondary btn-sm" onClick={() => resetFrameAdjust(selectedFrame.poseId)}>
+              Reset
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="empty-state-text">Select a frame below to adjust.</p>
+      )}
+
+      {/* Thumbnail strip */}
       <FrameStrip
         frames={framesForSelectedGroup}
-        adjustments={state.frameAdjustments}
         sprites={approvedSprites}
-        onAdjust={setFrameAdjust}
-        onReset={resetFrameAdjust}
+        selectedPoseId={activeFrameId}
+        onSelect={setSelectedFrameId}
         onReorder={ids => reorderFrames(selectedAnimGroup, ids)}
       />
 
@@ -107,6 +200,36 @@ export default function FrameEditorPanel({ api }: Props) {
           Export Sprite Sheet
         </button>
       </div>
+    </div>
+  );
+}
+
+// --- SliderRow ---
+
+interface SliderRowProps {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+function SliderRow({ label, min, max, step, value, onChange }: SliderRowProps) {
+  const displayValue = step < 1 ? value.toFixed(2) : String(value);
+  return (
+    <div className="anim-slider-row">
+      <span className="anim-slider-label">{label}</span>
+      <input
+        type="range"
+        className="anim-slider"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={onChange}
+      />
+      <span className="anim-slider-value">{displayValue}</span>
     </div>
   );
 }

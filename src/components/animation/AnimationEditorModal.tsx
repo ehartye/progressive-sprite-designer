@@ -27,6 +27,7 @@ export default function AnimationEditorModal({ onClose }: Props) {
   }, []);
 
   const hasFrames = api.animGroups.length > 0;
+  const { imagesReady, loadProgress } = api;
 
   return createPortal(
     <div
@@ -43,17 +44,35 @@ export default function AnimationEditorModal({ onClose }: Props) {
           <button className="modal-close" onClick={onClose}>&#x2715;</button>
         </div>
 
-        {/* Body: split pane */}
-        {hasFrames ? (
-          <div className="anim-editor-layout">
-            <FrameEditorPanel api={api} />
-            <PreviewPanel api={api} />
-          </div>
-        ) : (
+        {/* Body */}
+        {!hasFrames ? (
           <div className="anim-empty-state">
             <p className="empty-state-text">
               Approve some sprites in the workflow first, then come back to preview animations.
             </p>
+          </div>
+        ) : !imagesReady ? (
+          <div className="anim-empty-state">
+            <div className="anim-load-progress-center">
+              <div className="anim-load-bar-lg">
+                <div
+                  className="anim-load-fill"
+                  style={{ width: loadProgress.total > 0
+                    ? `${(loadProgress.loaded / loadProgress.total) * 100}%`
+                    : '0%' }}
+                />
+              </div>
+              <span className="anim-load-text-lg">
+                Loading sprites{loadProgress.total > 0
+                  ? ` (${loadProgress.loaded}/${loadProgress.total})`
+                  : '...'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="anim-editor-layout">
+            <FrameEditorPanel api={api} />
+            <PreviewPanel api={api} />
           </div>
         )}
       </div>

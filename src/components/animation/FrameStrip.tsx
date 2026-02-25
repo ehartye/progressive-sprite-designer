@@ -1,18 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import type { AnimFrame, FrameAdjust } from '../../lib/animationEngine';
-import { DEFAULT_FRAME_ADJUST } from '../../lib/animationEngine';
+import type { AnimFrame } from '../../lib/animationEngine';
 import type { ApprovedSprite } from '../../context/WorkflowContext';
 
 interface FrameStripProps {
   frames: AnimFrame[];
-  adjustments: Record<string, FrameAdjust>;
   sprites: ApprovedSprite[];
-  onAdjust: (poseId: string, adjustment: FrameAdjust) => void;
-  onReset: (poseId: string) => void;
+  selectedPoseId: string;
+  onSelect: (poseId: string) => void;
   onReorder: (orderedPoseIds: string[]) => void;
 }
 
-export default function FrameStrip({ frames, adjustments, sprites, onAdjust, onReset, onReorder }: FrameStripProps) {
+export default function FrameStrip({ frames, sprites, selectedPoseId, onSelect, onReorder }: FrameStripProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -36,15 +34,13 @@ export default function FrameStrip({ frames, adjustments, sprites, onAdjust, onR
       {frames.map((frame, index) => {
         const sprite = sprites.find(s => s.poseId === frame.poseId);
         if (!sprite) return null;
-        const adj = adjustments[frame.poseId] ?? DEFAULT_FRAME_ADJUST;
         return (
-          <FrameCard
+          <FrameThumb
             key={frame.poseId}
             frame={frame}
             sprite={sprite}
-            adjustment={adj}
-            onAdjust={onAdjust}
-            onReset={onReset}
+            isSelected={frame.poseId === selectedPoseId}
+            onClick={() => onSelect(frame.poseId)}
             isDragging={dragIndex === index}
             isDragOver={dragOverIndex === index}
             onDragStart={() => setDragIndex(index)}
@@ -59,14 +55,13 @@ export default function FrameStrip({ frames, adjustments, sprites, onAdjust, onR
   );
 }
 
-// --- FrameCard (private sub-component) ---
+// --- FrameThumb ---
 
-interface FrameCardProps {
+interface FrameThumbProps {
   frame: AnimFrame;
   sprite: ApprovedSprite;
-  adjustment: FrameAdjust;
-  onAdjust: (poseId: string, adjustment: FrameAdjust) => void;
-  onReset: (poseId: string) => void;
+  isSelected: boolean;
+  onClick: () => void;
   isDragging: boolean;
   isDragOver: boolean;
   onDragStart: () => void;
@@ -76,13 +71,12 @@ interface FrameCardProps {
   onDragEnd: () => void;
 }
 
-function FrameCard({
-  frame, sprite, adjustment, onAdjust, onReset,
+function FrameThumb({
+  frame, sprite, isSelected, onClick,
   isDragging, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
-}: FrameCardProps) {
+}: FrameThumbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Draw thumbnail
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -95,7 +89,6 @@ function FrameCard({
     const img = new Image();
     img.onload = () => {
       if (cancelled) return;
-      // Scale to fill canvas, centered
       const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
       const w = img.naturalWidth * scale;
       const h = img.naturalHeight * scale;
@@ -108,12 +101,9 @@ function FrameCard({
     return () => { cancelled = true; };
   }, [sprite.imageData, sprite.mimeType]);
 
-  const handleSlider = (key: keyof FrameAdjust) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    onAdjust(frame.poseId, { ...adjustment, [key]: Number(e.target.value) });
-  };
-
   const className = [
-    'anim-frame-card',
+    'anim-frame-thumb-card',
+    isSelected ? 'anim-frame-thumb-selected' : '',
     isDragging ? 'anim-frame-dragging' : '',
     isDragOver ? 'anim-frame-drag-over' : '',
   ].filter(Boolean).join(' ');
@@ -121,6 +111,7 @@ function FrameCard({
   return (
     <div
       className={className}
+      onClick={onClick}
       draggable
       onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart(); }}
       onDragOver={e => { e.preventDefault(); onDragOver(); }}
@@ -128,49 +119,8 @@ function FrameCard({
       onDrop={e => { e.preventDefault(); onDrop(); }}
       onDragEnd={onDragEnd}
     >
-      <div className="anim-frame-thumb-wrapper">
-        <canvas ref={canvasRef} width={48} height={48} className="anim-frame-thumb" />
-        <span className="anim-frame-index">#{frame.frameIndex}</span>
-      </div>
-      <div className="anim-frame-sliders">
-        <SliderRow label="X Pos" min={-16} max={16} step={1} value={adjustment.dx} onChange={handleSlider('dx')} />
-        <SliderRow label="Y Pos" min={-16} max={16} step={1} value={adjustment.dy} onChange={handleSlider('dy')} />
-        <SliderRow label="X Scale" min={0.5} max={2} step={0.05} value={adjustment.scaleX} onChange={handleSlider('scaleX')} />
-        <SliderRow label="Y Scale" min={0.5} max={2} step={0.05} value={adjustment.scaleY} onChange={handleSlider('scaleY')} />
-        <button className="btn btn-secondary btn-sm" onClick={() => onReset(frame.poseId)}>
-          Reset
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// --- SliderRow (private sub-component) ---
-
-interface SliderRowProps {
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  value: number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-function SliderRow({ label, min, max, step, value, onChange }: SliderRowProps) {
-  const displayValue = step < 1 ? value.toFixed(2) : String(value);
-  return (
-    <div className="anim-slider-row">
-      <span className="anim-slider-label">{label}</span>
-      <input
-        type="range"
-        className="anim-slider"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={onChange}
-      />
-      <span className="anim-slider-value">{displayValue}</span>
+      <canvas ref={canvasRef} width={64} height={64} className="anim-frame-thumb" />
+      <span className="anim-frame-index">#{frame.frameIndex}</span>
     </div>
   );
 }

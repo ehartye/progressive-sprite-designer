@@ -153,10 +153,11 @@ export class AnimationEngine {
 
   destroy(): void {
     this.stop();
-    this.images.clear();
-    this.processedImages.clear();
-    this.groupedFrames.clear();
-    this.adjustments.clear();
+    // Reassign instead of .clear() to avoid mutating shared Map references
+    this.images = new Map();
+    this.processedImages = new Map();
+    this.groupedFrames = new Map();
+    this.adjustments = new Map();
   }
 
   /** Render a single static frame (when paused) */

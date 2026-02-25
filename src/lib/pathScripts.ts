@@ -93,16 +93,44 @@ export function getDefaultLoop(animGroup: string): boolean {
 /**
  * Get the path scripts available for a game type.
  * Steps referencing animGroups not in `available` are skipped.
+ * Dynamically generates per-group and all-groups scripts from available groups.
  */
 export function getPathScripts(
   gameType: string,
   available: Set<string>,
 ): PathScript[] {
   const raw = RAW_SCRIPTS[gameType] ?? RAW_SCRIPTS['GENERIC'];
-  return raw.map(script => ({
+  const scripts: PathScript[] = raw.map(script => ({
     ...script,
     steps: script.steps.filter(step => available.has(step.animGroup)),
   })).filter(script => script.steps.length > 0);
+
+  const allGroups = Array.from(available).sort();
+
+  // Dynamic: "All Groups Demo" cycles through every available group
+  if (allGroups.length > 1) {
+    scripts.push({
+      id: 'all_groups',
+      label: 'All Groups Demo',
+      steps: allGroups.map(group => ({
+        animGroup: group,
+        durationMs: 1500,
+        moveX: 0,
+        moveY: 0,
+      })),
+    });
+  }
+
+  // Dynamic: per-group scripts for previewing a single group
+  for (const group of allGroups) {
+    scripts.push({
+      id: `single_${group}`,
+      label: group.replace(/_/g, ' '),
+      steps: [{ animGroup: group, durationMs: 5000, moveX: 0, moveY: 0 }],
+    });
+  }
+
+  return scripts;
 }
 
 // Movement speed constant (canvas px per ms at 4x zoom)
