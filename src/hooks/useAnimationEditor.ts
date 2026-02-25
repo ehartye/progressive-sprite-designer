@@ -5,6 +5,7 @@ import type { Phase, Pose } from '../lib/poses';
 import { GAME_TYPES } from '../lib/poses';
 import { AnimationEngine } from '../lib/animationEngine';
 import type { FrameAdjust, AnimFrame } from '../lib/animationEngine';
+import { DEFAULT_FRAME_ADJUST } from '../lib/animationEngine';
 import { base64ToImageData, applyChromaKey, imageDataToImage } from '../lib/chromaKey';
 import { getPathScripts, getDefaultMsPerFrame, getDefaultLoop } from '../lib/pathScripts';
 import type { PathScript } from '../lib/pathScripts';
@@ -20,6 +21,9 @@ interface AnimEditorState {
   isPlaying: boolean;
   zoomLevel: number;
   selectedScriptId: string;
+  onionSkinEnabled: boolean;
+  onionSkinOpacity: number;
+  frameOrder: Record<string, string[]>;
 }
 
 type AnimAction =
@@ -32,6 +36,9 @@ type AnimAction =
   | { type: 'SET_PLAYING'; playing: boolean }
   | { type: 'SET_ZOOM'; zoom: number }
   | { type: 'SET_SCRIPT'; scriptId: string }
+  | { type: 'SET_ONION_SKIN'; enabled: boolean }
+  | { type: 'SET_ONION_OPACITY'; opacity: number }
+  | { type: 'REORDER_FRAMES'; group: string; orderedPoseIds: string[] }
   | { type: 'INIT_GROUPS'; groups: string[] };
 
 const initialState: AnimEditorState = {
@@ -43,6 +50,9 @@ const initialState: AnimEditorState = {
   isPlaying: true,
   zoomLevel: 4,
   selectedScriptId: '',
+  onionSkinEnabled: false,
+  onionSkinOpacity: 0.3,
+  frameOrder: {},
 };
 
 function animReducer(state: AnimEditorState, action: AnimAction): AnimEditorState {
@@ -78,6 +88,15 @@ function animReducer(state: AnimEditorState, action: AnimAction): AnimEditorStat
       return { ...state, zoomLevel: action.zoom };
     case 'SET_SCRIPT':
       return { ...state, selectedScriptId: action.scriptId };
+    case 'SET_ONION_SKIN':
+      return { ...state, onionSkinEnabled: action.enabled };
+    case 'SET_ONION_OPACITY':
+      return { ...state, onionSkinOpacity: action.opacity };
+    case 'REORDER_FRAMES':
+      return {
+        ...state,
+        frameOrder: { ...state.frameOrder, [action.group]: action.orderedPoseIds },
+      };
     case 'INIT_GROUPS': {
       // Merge defaults — preserve any user-modified values
       const msPerFrame = { ...state.msPerFrame };
@@ -185,9 +204,33 @@ export function useAnimationEditor() {
     return pathScripts[0] ?? null;
   }, [state.selectedScriptId, pathScripts]);
 
+  // Apply custom frame ordering
+  const orderedGroupedFrames = useMemo(() => {
+    const result = new Map<string, AnimFrame[]>();
+    for (const [group, frames] of groupedFrames) {
+      const order = state.frameOrder[group];
+      if (order) {
+        const frameMap = new Map(frames.map(f => [f.poseId, f]));
+        const ordered: AnimFrame[] = [];
+        for (const id of order) {
+          const f = frameMap.get(id);
+          if (f) ordered.push(f);
+        }
+        // Include any new frames not yet in the custom order
+        for (const f of frames) {
+          if (!order.includes(f.poseId)) ordered.push(f);
+        }
+        result.set(group, ordered);
+      } else {
+        result.set(group, frames);
+      }
+    }
+    return result;
+  }, [groupedFrames, state.frameOrder]);
+
   const framesForSelectedGroup = useMemo(
-    () => groupedFrames.get(state.selectedAnimGroup) ?? [],
-    [groupedFrames, state.selectedAnimGroup],
+    () => orderedGroupedFrames.get(state.selectedAnimGroup) ?? [],
+    [orderedGroupedFrames, state.selectedAnimGroup],
   );
 
   // --- Initialize groups on first render / when groups change ---
@@ -288,8 +331,8 @@ export function useAnimationEditor() {
   // --- Sync engine state ---
 
   useEffect(() => {
-    engineRef.current?.setGroupedFrames(groupedFrames);
-  }, [groupedFrames]);
+    engineRef.current?.setGroupedFrames(orderedGroupedFrames);
+  }, [orderedGroupedFrames]);
 
   useEffect(() => {
     const map = new Map(Object.entries(state.frameAdjustments));
@@ -317,6 +360,10 @@ export function useAnimationEditor() {
   useEffect(() => {
     engineRef.current?.setPathScript(activeScript);
   }, [activeScript]);
+
+  useEffect(() => {
+    engineRef.current?.setOnionSkin(state.onionSkinEnabled, state.onionSkinOpacity);
+  }, [state.onionSkinEnabled, state.onionSkinOpacity]);
 
   // --- Play/pause ---
 
@@ -374,12 +421,97 @@ export function useAnimationEditor() {
     dispatch({ type: 'SET_SCRIPT', scriptId });
   }, []);
 
+  const toggleOnionSkin = useCallback(() => {
+    dispatch({ type: 'SET_ONION_SKIN', enabled: !state.onionSkinEnabled });
+  }, [state.onionSkinEnabled]);
+
+  const setOnionOpacity = useCallback((opacity: number) => {
+    dispatch({ type: 'SET_ONION_OPACITY', opacity });
+  }, []);
+
+  const reorderFrames = useCallback((group: string, orderedPoseIds: string[]) => {
+    dispatch({ type: 'REORDER_FRAMES', group, orderedPoseIds });
+  }, []);
+
+  // --- Export functions ---
+
+  const exportMetadata = useCallback(() => {
+    const groups: Record<string, unknown> = {};
+    for (const [group, frames] of orderedGroupedFrames) {
+      groups[group] = {
+        msPerFrame: state.msPerFrame[group] ?? getDefaultMsPerFrame(group),
+        loop: state.loopGroups[group] ?? getDefaultLoop(group),
+        frames: frames.map(f => ({
+          poseId: f.poseId,
+          frameIndex: f.frameIndex,
+          adjustments: state.frameAdjustments[f.poseId] ?? DEFAULT_FRAME_ADJUST,
+        })),
+      };
+    }
+
+    const metadata = { gameType, spriteSize, animationGroups: groups };
+    const json = JSON.stringify(metadata, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'animation_metadata.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [gameType, spriteSize, orderedGroupedFrames, state.msPerFrame, state.loopGroups, state.frameAdjustments]);
+
+  const exportChromaSheet = useCallback(() => {
+    const processed = processedImagesRef.current;
+    if (processed.size === 0) return;
+
+    // Collect images in animation group order
+    const allImages: HTMLImageElement[] = [];
+    for (const [, frames] of orderedGroupedFrames) {
+      for (const frame of frames) {
+        const img = processed.get(frame.poseId);
+        if (img) allImages.push(img);
+      }
+    }
+    if (allImages.length === 0) return;
+
+    const maxW = Math.max(...allImages.map(i => i.naturalWidth || i.width));
+    const maxH = Math.max(...allImages.map(i => i.naturalHeight || i.height));
+    const cols = Math.ceil(Math.sqrt(allImages.length));
+    const rows = Math.ceil(allImages.length / cols);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = cols * maxW;
+    canvas.height = rows * maxH;
+    const ctx = canvas.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+
+    allImages.forEach((img, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const iw = img.naturalWidth || img.width;
+      const ih = img.naturalHeight || img.height;
+      const x = col * maxW + Math.floor((maxW - iw) / 2);
+      const y = row * maxH + Math.floor((maxH - ih) / 2);
+      ctx.drawImage(img, x, y);
+    });
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'sprite_sheet_transparent.png';
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }, [orderedGroupedFrames]);
+
   return {
     // State
     state,
     selectedAnimGroup: state.selectedAnimGroup,
     animGroups,
-    groupedFrames,
+    groupedFrames: orderedGroupedFrames,
     framesForSelectedGroup,
     pathScripts,
     activeScript,
@@ -398,6 +530,13 @@ export function useAnimationEditor() {
     togglePlayPause,
     setZoom,
     selectScript,
+    toggleOnionSkin,
+    setOnionOpacity,
+    reorderFrames,
+
+    // Export
+    exportMetadata,
+    exportChromaSheet,
 
     // Workflow data (for frame thumbnails)
     approvedSprites,

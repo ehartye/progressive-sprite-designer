@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { AnimFrame, FrameAdjust } from '../../lib/animationEngine';
 import { DEFAULT_FRAME_ADJUST } from '../../lib/animationEngine';
 import type { ApprovedSprite } from '../../context/WorkflowContext';
@@ -9,16 +9,31 @@ interface FrameStripProps {
   sprites: ApprovedSprite[];
   onAdjust: (poseId: string, adjustment: FrameAdjust) => void;
   onReset: (poseId: string) => void;
+  onReorder: (orderedPoseIds: string[]) => void;
 }
 
-export default function FrameStrip({ frames, adjustments, sprites, onAdjust, onReset }: FrameStripProps) {
+export default function FrameStrip({ frames, adjustments, sprites, onAdjust, onReset, onReorder }: FrameStripProps) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   if (frames.length === 0) {
     return <p className="empty-state-text">No approved frames for this group yet.</p>;
   }
 
+  const handleDrop = (targetIndex: number) => {
+    if (dragIndex != null && dragIndex !== targetIndex) {
+      const ids = frames.map(f => f.poseId);
+      const [moved] = ids.splice(dragIndex, 1);
+      ids.splice(targetIndex, 0, moved);
+      onReorder(ids);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
   return (
     <div className="anim-frame-strip">
-      {frames.map(frame => {
+      {frames.map((frame, index) => {
         const sprite = sprites.find(s => s.poseId === frame.poseId);
         if (!sprite) return null;
         const adj = adjustments[frame.poseId] ?? DEFAULT_FRAME_ADJUST;
@@ -30,6 +45,13 @@ export default function FrameStrip({ frames, adjustments, sprites, onAdjust, onR
             adjustment={adj}
             onAdjust={onAdjust}
             onReset={onReset}
+            isDragging={dragIndex === index}
+            isDragOver={dragOverIndex === index}
+            onDragStart={() => setDragIndex(index)}
+            onDragOver={() => setDragOverIndex(index)}
+            onDragLeave={() => { if (dragOverIndex === index) setDragOverIndex(null); }}
+            onDrop={() => handleDrop(index)}
+            onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
           />
         );
       })}
@@ -45,9 +67,19 @@ interface FrameCardProps {
   adjustment: FrameAdjust;
   onAdjust: (poseId: string, adjustment: FrameAdjust) => void;
   onReset: (poseId: string) => void;
+  isDragging: boolean;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
 }
 
-function FrameCard({ frame, sprite, adjustment, onAdjust, onReset }: FrameCardProps) {
+function FrameCard({
+  frame, sprite, adjustment, onAdjust, onReset,
+  isDragging, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
+}: FrameCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Draw thumbnail
@@ -80,8 +112,22 @@ function FrameCard({ frame, sprite, adjustment, onAdjust, onReset }: FrameCardPr
     onAdjust(frame.poseId, { ...adjustment, [key]: Number(e.target.value) });
   };
 
+  const className = [
+    'anim-frame-card',
+    isDragging ? 'anim-frame-dragging' : '',
+    isDragOver ? 'anim-frame-drag-over' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className="anim-frame-card">
+    <div
+      className={className}
+      draggable
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart(); }}
+      onDragOver={e => { e.preventDefault(); onDragOver(); }}
+      onDragLeave={onDragLeave}
+      onDrop={e => { e.preventDefault(); onDrop(); }}
+      onDragEnd={onDragEnd}
+    >
       <div className="anim-frame-thumb-wrapper">
         <canvas ref={canvasRef} width={48} height={48} className="anim-frame-thumb" />
         <span className="anim-frame-index">#{frame.frameIndex}</span>

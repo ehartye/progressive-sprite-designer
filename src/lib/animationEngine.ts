@@ -71,6 +71,10 @@ export class AnimationEngine {
   private spriteW = 16;
   private spriteH = 24;
 
+  // Onion skin
+  private onionSkinEnabled = false;
+  private onionSkinOpacity = 0.3;
+
   constructor(canvas: HTMLCanvasElement, spriteW = 16, spriteH = 24) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -123,6 +127,11 @@ export class AnimationEngine {
     // Reset character to center so it stays visible at new zoom level
     this.charX = this.canvas.width / 2;
     this.charY = this.canvas.height / 2;
+  }
+
+  setOnionSkin(enabled: boolean, opacity: number): void {
+    this.onionSkinEnabled = enabled;
+    this.onionSkinOpacity = opacity;
   }
 
   // --- Loop control ---
@@ -263,7 +272,22 @@ export class AnimationEngine {
     const x = this.script ? this.charX : this.canvas.width / 2;
     const y = this.script ? this.charY : this.canvas.height / 2;
 
+    // Onion skin: draw previous frame at reduced opacity
+    if (this.onionSkinEnabled && frameIndex > 0) {
+      this.ctx.globalAlpha = this.onionSkinOpacity;
+      this.drawFrame(frames[frameIndex - 1], x, y);
+      this.ctx.globalAlpha = 1;
+    }
+
+    // Current frame
     this.drawFrame(frame, x, y);
+
+    // Onion skin: draw next frame at lower opacity
+    if (this.onionSkinEnabled && frameIndex < frames.length - 1) {
+      this.ctx.globalAlpha = this.onionSkinOpacity * 0.5;
+      this.drawFrame(frames[frameIndex + 1], x, y);
+      this.ctx.globalAlpha = 1;
+    }
   }
 
   private drawFrame(frame: AnimFrame, cx: number, cy: number): void {

@@ -17,6 +17,8 @@ export default function PreviewPanel({ api }: Props) {
     togglePlayPause,
     setZoom,
     selectScript,
+    toggleOnionSkin,
+    setOnionOpacity,
   } = api;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,6 +55,8 @@ export default function PreviewPanel({ api }: Props) {
     const adjMap = new Map(Object.entries(state.frameAdjustments));
     engine.setAdjustments(adjMap);
 
+    engine.setOnionSkin(state.onionSkinEnabled, state.onionSkinOpacity);
+
     if (state.isPlaying) {
       engine.start();
     }
@@ -88,6 +92,29 @@ export default function PreviewPanel({ api }: Props) {
           />
           <span className="anim-slider-value">{state.zoomLevel}x</span>
         </div>
+        <label className="anim-checkbox-label">
+          <input
+            type="checkbox"
+            checked={state.onionSkinEnabled}
+            onChange={toggleOnionSkin}
+          />
+          Onion Skin
+        </label>
+        {state.onionSkinEnabled && (
+          <div className="anim-zoom-control">
+            <span className="anim-slider-label">Opacity</span>
+            <input
+              type="range"
+              className="anim-slider"
+              min={0.1}
+              max={0.8}
+              step={0.05}
+              value={state.onionSkinOpacity}
+              onChange={e => setOnionOpacity(Number(e.target.value))}
+            />
+            <span className="anim-slider-value">{(state.onionSkinOpacity * 100).toFixed(0)}%</span>
+          </div>
+        )}
         {pathScripts.length > 1 && (
           <select
             className="select-input anim-script-select"

@@ -17,6 +17,9 @@ export default function FrameEditorPanel({ api }: Props) {
     setChromaTolerance,
     setMsPerFrame,
     toggleLoop,
+    reorderFrames,
+    exportMetadata,
+    exportChromaSheet,
     approvedSprites,
   } = api;
 
@@ -92,7 +95,18 @@ export default function FrameEditorPanel({ api }: Props) {
         sprites={approvedSprites}
         onAdjust={setFrameAdjust}
         onReset={resetFrameAdjust}
+        onReorder={ids => reorderFrames(selectedAnimGroup, ids)}
       />
+
+      {/* Export section */}
+      <div className="anim-export-section">
+        <button className="btn btn-secondary btn-sm" onClick={exportMetadata}>
+          Export Metadata (JSON)
+        </button>
+        <button className="btn btn-secondary btn-sm" onClick={exportChromaSheet}>
+          Export Sprite Sheet
+        </button>
+      </div>
     </div>
   );
 }

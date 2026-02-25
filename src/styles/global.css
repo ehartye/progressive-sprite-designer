@@ -2031,7 +2031,21 @@ img.sprite-image {
   background: var(--bg-card);
   border: 2px solid var(--border);
   border-radius: var(--radius);
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), opacity var(--transition-fast);
+  cursor: grab;
+}
+
+.anim-frame-card:active {
+  cursor: grabbing;
+}
+
+.anim-frame-dragging {
+  opacity: 0.35;
+}
+
+.anim-frame-drag-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 .anim-frame-card:hover {
@@ -2160,4 +2174,26 @@ img.sprite-image {
   justify-content: center;
   flex: 1;
   padding: 40px;
+}
+
+/* --- Export section in frame editor --- */
+
+.anim-export-section {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+/* --- Onion skin checkbox --- */
+
+.anim-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
 }
