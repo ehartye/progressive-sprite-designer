@@ -1904,3 +1904,260 @@ img.sprite-image {
     padding: 16px;
   }
 }
+
+/* ============================================================
+   Animation Editor Modal
+   ============================================================ */
+
+.anim-modal-overlay {
+  padding: 0;
+}
+
+.anim-modal-content {
+  width: calc(100vw - 48px);
+  height: calc(100vh - 48px);
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal-scale-in 0.2s ease;
+}
+
+.anim-modal-content::before,
+.anim-modal-content::after {
+  display: none;
+}
+
+.anim-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.anim-modal-title {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  color: var(--accent-hover);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+/* --- Split Pane Layout --- */
+
+.anim-editor-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* --- Frame Editor (left pane) --- */
+
+.anim-editor-pane {
+  border-right: 2px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.anim-group-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* --- Timing/Chroma Controls --- */
+
+.anim-timing-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.anim-timing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.anim-loop-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.anim-chroma-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #FF00FF;
+  border: 1px solid var(--border);
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* --- Frame Strip --- */
+
+.anim-frame-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.anim-frame-card {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color var(--transition-fast);
+}
+
+.anim-frame-card:hover {
+  border-color: var(--border-light);
+}
+
+.anim-frame-thumb-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.anim-frame-thumb {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background:
+    repeating-conic-gradient(
+      rgba(255, 255, 255, 0.04) 0% 25%,
+      transparent 0% 50%
+    ) 0 0 / 8px 8px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.anim-frame-index {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* --- Sliders --- */
+
+.anim-frame-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.anim-slider-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 36px;
+  align-items: center;
+  gap: 6px;
+}
+
+.anim-slider-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.anim-slider-value {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.anim-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* --- Animation Preview (right pane) --- */
+
+.anim-preview-pane {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--bg-base);
+}
+
+.anim-preview-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: #0a0a20;
+  box-shadow:
+    0 0 40px rgba(128, 96, 255, 0.1),
+    inset 0 0 20px rgba(0, 0, 0, 0.4);
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.anim-preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.anim-zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.anim-script-select {
+  max-width: 180px;
+  font-size: 0.8rem;
+}
+
+/* --- Animate button in right panel --- */
+
+.animate-section {
+  padding-top: 12px;
+  border-top: 2px solid var(--border);
+}
+
+/* --- Empty state for animation modal --- */
+
+.anim-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 40px;
+}

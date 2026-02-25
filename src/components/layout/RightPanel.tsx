@@ -1,8 +1,12 @@
+import { useState, lazy, Suspense } from 'react';
 import ApprovedGallery from '../gallery/ApprovedGallery';
 import { useWorkflow } from '../../hooks/useWorkflow';
 
+const AnimationEditorModal = lazy(() => import('../animation/AnimationEditorModal'));
+
 export default function RightPanel() {
   const { state } = useWorkflow();
+  const [animateOpen, setAnimateOpen] = useState(false);
 
   const downloadAll = () => {
     for (const sprite of state.approvedSprites) {
@@ -29,10 +33,20 @@ export default function RightPanel() {
   };
 
   return (
+    <>
     <aside className="panel panel-right">
       <section className="panel-section">
         <h2 className="section-title">Approved Sprites</h2>
         <ApprovedGallery />
+      </section>
+      <section className="panel-section animate-section">
+        <button
+          className="btn btn-secondary btn-full"
+          disabled={state.approvedSprites.length === 0}
+          onClick={() => setAnimateOpen(true)}
+        >
+          Animate
+        </button>
       </section>
       <section className="panel-section export-section">
         <h2 className="section-title">Export</h2>
@@ -52,6 +66,12 @@ export default function RightPanel() {
         </button>
       </section>
     </aside>
+    {animateOpen && (
+      <Suspense fallback={null}>
+        <AnimationEditorModal onClose={() => setAnimateOpen(false)} />
+      </Suspense>
+    )}
+    </>
   );
 }
 
