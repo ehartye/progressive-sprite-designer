@@ -19,6 +19,7 @@ export default function PreviewPanel({ api }: Props) {
     selectScript,
     toggleOnionSkin,
     setOnionOpacity,
+    loadedImagesRef,
   } = api;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,6 +39,11 @@ export default function PreviewPanel({ api }: Props) {
       spriteSize.h,
     );
     engineRef.current = engine;
+
+    // Seed images if they were loaded before engine mounted
+    if (api.loadedImagesRef?.current.size > 0) {
+      engine.setImages(api.loadedImagesRef.current);
+    }
 
     // Seed engine with current state so first frame renders correctly
     engine.setGroupedFrames(groupedFrames);

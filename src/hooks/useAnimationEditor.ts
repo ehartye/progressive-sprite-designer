@@ -117,6 +117,17 @@ function animReducer(state: AnimEditorState, action: AnimAction): AnimEditorStat
   }
 }
 
+// --- Download helper ---
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // --- Helpers ---
 
 function buildPoseMap(hierarchy: Phase[]): Map<string, Pose> {
@@ -164,7 +175,10 @@ export function useAnimationEditor() {
   const { state: workflowState } = useWorkflowContext();
   const { approvedSprites, hierarchy, characterConfig } = workflowState;
   const gameType = characterConfig.gameType;
-  const spriteSize = GAME_TYPES[gameType]?.defaultSpriteSize ?? { w: 16, h: 24 };
+  const spriteSize = useMemo(
+    () => GAME_TYPES[gameType]?.defaultSpriteSize ?? { w: 16, h: 24 },
+    [gameType],
+  );
 
   const [state, dispatch] = useReducer(animReducer, initialState);
   const engineRef = useRef<AnimationEngine | null>(null);
@@ -175,6 +189,9 @@ export function useAnimationEditor() {
 
   // Persistent processed images ref — survives across effect cycles
   const processedImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
+
+  // Loaded raw images ref — survives engine mount race
+  const loadedImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   // Track chroma processing to avoid redundant work
   const chromaProcessingRef = useRef<Map<string, number>>(new Map()); // poseId → tolerance
@@ -240,12 +257,11 @@ export function useAnimationEditor() {
 
   // --- Initialize groups on first render / when groups change ---
 
-  const animGroupsKey = animGroups.join(',');
   useEffect(() => {
     if (animGroups.length > 0) {
       dispatch({ type: 'INIT_GROUPS', groups: animGroups });
     }
-  }, [animGroupsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [animGroups]);
 
   // Select first script
   useEffect(() => {
@@ -257,6 +273,10 @@ export function useAnimationEditor() {
   // --- Preload images ---
 
   useEffect(() => {
+    // Invalidate chroma cache so re-approved sprites get reprocessed
+    processedImagesRef.current = new Map();
+    chromaProcessingRef.current = new Map();
+
     let cancelled = false;
     const total = approvedSprites.length;
     setLoadProgress({ loaded: 0, total });
@@ -287,6 +307,7 @@ export function useAnimationEditor() {
         for (const [poseId, img] of results) {
           imageMap.set(poseId, img);
         }
+        loadedImagesRef.current = imageMap;
         engineRef.current?.setImages(imageMap);
         setImagesReady(true);
       } catch (err) {
@@ -385,16 +406,14 @@ export function useAnimationEditor() {
   // --- Play/pause ---
 
   useEffect(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
+    if (!engineRef.current) return;
+    if (state.isPlaying) engineRef.current.start();
+    else engineRef.current.stop();
+  }, [state.isPlaying]);
 
-    if (state.isPlaying) {
-      engine.start();
-    } else {
-      engine.stop();
-      if (state.selectedAnimGroup) {
-        engine.renderStatic(state.selectedAnimGroup);
-      }
+  useEffect(() => {
+    if (!state.isPlaying && state.selectedAnimGroup) {
+      engineRef.current?.renderStatic(state.selectedAnimGroup);
     }
   }, [state.isPlaying, state.selectedAnimGroup]);
 
@@ -473,12 +492,7 @@ export function useAnimationEditor() {
     const metadata = { gameType, spriteSize, animationGroups: groups };
     const json = JSON.stringify(metadata, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'animation_metadata.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    triggerDownload(blob, 'animation_metadata.json');
   }, [gameType, spriteSize, orderedGroupedFrames, state.msPerFrame, state.loopGroups, state.frameAdjustments]);
 
   const exportChromaSheet = useCallback(() => {
@@ -518,12 +532,7 @@ export function useAnimationEditor() {
 
     canvas.toBlob(blob => {
       if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'sprite_sheet_transparent.png';
-      a.click();
-      URL.revokeObjectURL(url);
+      triggerDownload(blob, 'sprite_sheet_transparent.png');
     }, 'image/png');
   }, [orderedGroupedFrames]);
 
@@ -540,6 +549,7 @@ export function useAnimationEditor() {
 
     // Refs
     engineRef,
+    loadedImagesRef,
 
     // Callbacks
     selectAnimGroup,

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { AnimFrame } from '../../lib/animationEngine';
 import type { ApprovedSprite } from '../../context/WorkflowContext';
+import { drawImageFitCenter } from '../../lib/canvasUtils';
 
 interface FrameStripProps {
   frames: AnimFrame[];
@@ -13,6 +14,11 @@ interface FrameStripProps {
 export default function FrameStrip({ frames, sprites, selectedPoseId, onSelect, onReorder }: FrameStripProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const spriteMap = useMemo(
+    () => new Map(sprites.map(s => [s.poseId, s])),
+    [sprites],
+  );
 
   if (frames.length === 0) {
     return <p className="empty-state-text">No approved frames for this group yet.</p>;
@@ -32,7 +38,7 @@ export default function FrameStrip({ frames, sprites, selectedPoseId, onSelect, 
   return (
     <div className="anim-frame-strip">
       {frames.map((frame, index) => {
-        const sprite = sprites.find(s => s.poseId === frame.poseId);
+        const sprite = spriteMap.get(frame.poseId);
         if (!sprite) return null;
         return (
           <FrameThumb
@@ -89,12 +95,7 @@ function FrameThumb({
     const img = new Image();
     img.onload = () => {
       if (cancelled) return;
-      const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
-      const w = img.naturalWidth * scale;
-      const h = img.naturalHeight * scale;
-      const x = (canvas.width - w) / 2;
-      const y = (canvas.height - h) / 2;
-      ctx.drawImage(img, x, y, w, h);
+      drawImageFitCenter(ctx, img, canvas.width, canvas.height);
     };
     img.src = `data:${sprite.mimeType};base64,${sprite.imageData}`;
 

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import type { AnimationEditorAPI } from '../../hooks/useAnimationEditor';
 import type { FrameAdjust } from '../../lib/animationEngine';
 import { DEFAULT_FRAME_ADJUST } from '../../lib/animationEngine';
+import { drawImageFitCenter } from '../../lib/canvasUtils';
+import { getDefaultMsPerFrame, getDefaultLoop } from '../../lib/pathScripts';
 import FrameStrip from './FrameStrip';
 
 interface Props {
@@ -31,18 +33,13 @@ export default function FrameEditorPanel({ api }: Props) {
   const [selectedFrameId, setSelectedFrameId] = useState('');
   const detailCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const groupMs = state.msPerFrame[selectedAnimGroup] ?? 500;
-  const groupLoop = state.loopGroups[selectedAnimGroup] ?? true;
+  const groupMs = state.msPerFrame[selectedAnimGroup] ?? getDefaultMsPerFrame(selectedAnimGroup);
+  const groupLoop = state.loopGroups[selectedAnimGroup] ?? getDefaultLoop(selectedAnimGroup);
 
   // Synchronous derivation: if selected frame isn't in current group, snap to first frame
   const activeFrameId = framesForSelectedGroup.some(f => f.poseId === selectedFrameId)
     ? selectedFrameId
     : (framesForSelectedGroup[0]?.poseId ?? '');
-
-  // Keep local state in sync (so clicking a thumb persists)
-  if (activeFrameId !== selectedFrameId) {
-    setSelectedFrameId(activeFrameId);
-  }
 
   const selectedFrame = framesForSelectedGroup.find(f => f.poseId === activeFrameId);
   const selectedSprite = selectedFrame
@@ -64,12 +61,7 @@ export default function FrameEditorPanel({ api }: Props) {
     // Try chroma-processed image first
     const processed = getProcessedImage(selectedSprite.poseId);
     if (processed) {
-      const scale = Math.min(canvas.width / processed.naturalWidth, canvas.height / processed.naturalHeight);
-      const w = processed.naturalWidth * scale;
-      const h = processed.naturalHeight * scale;
-      const x = (canvas.width - w) / 2;
-      const y = (canvas.height - h) / 2;
-      ctx.drawImage(processed, x, y, w, h);
+      drawImageFitCenter(ctx, processed, canvas.width, canvas.height);
       return;
     }
 
@@ -79,12 +71,7 @@ export default function FrameEditorPanel({ api }: Props) {
     img.onload = () => {
       if (cancelled) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
-      const w = img.naturalWidth * scale;
-      const h = img.naturalHeight * scale;
-      const x = (canvas.width - w) / 2;
-      const y = (canvas.height - h) / 2;
-      ctx.drawImage(img, x, y, w, h);
+      drawImageFitCenter(ctx, img, canvas.width, canvas.height);
     };
     img.src = `data:${selectedSprite.mimeType};base64,${selectedSprite.imageData}`;
 

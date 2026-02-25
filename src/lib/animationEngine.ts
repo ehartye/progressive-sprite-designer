@@ -81,8 +81,7 @@ export class AnimationEngine {
     this.ctx.imageSmoothingEnabled = false;
     this.spriteW = spriteW;
     this.spriteH = spriteH;
-    this.charX = canvas.width / 2;
-    this.charY = canvas.height / 2;
+    this.resetCharToCenter();
   }
 
   // --- Data setters (called by hook, no re-renders) ---
@@ -117,16 +116,13 @@ export class AnimationEngine {
     this.stepElapsed = 0;
     this.frameElapsed = 0;
     this.currentFrameIndex = 0;
-    // Reset character to center
-    this.charX = this.canvas.width / 2;
-    this.charY = this.canvas.height / 2;
+    this.resetCharToCenter();
   }
 
   setZoom(z: number): void {
     this.zoom = z;
-    // Reset character to center so it stays visible at new zoom level
-    this.charX = this.canvas.width / 2;
-    this.charY = this.canvas.height / 2;
+    this.ctx.imageSmoothingEnabled = false;
+    this.resetCharToCenter();
   }
 
   setOnionSkin(enabled: boolean, opacity: number): void {
@@ -164,11 +160,13 @@ export class AnimationEngine {
   renderStatic(animGroup: string): void {
     const frames = this.groupedFrames.get(animGroup);
     if (!frames || frames.length === 0) {
-      this.drawEmpty();
+      this.drawBackground();
+      this.drawEmptyOverlay();
       return;
     }
     this.drawBackground();
-    this.drawFrame(frames[0], this.canvas.width / 2, this.canvas.height / 2);
+    const frameIndex = Math.min(this.currentFrameIndex, frames.length - 1);
+    this.drawFrame(frames[frameIndex], this.canvas.width / 2, this.canvas.height / 2);
   }
 
   // --- Private ---
@@ -214,8 +212,7 @@ export class AnimationEngine {
 
       // On wrap-around, reset character to center
       if (this.scriptStepIndex === 0) {
-        this.charX = this.canvas.width / 2;
-        this.charY = this.canvas.height / 2;
+        this.resetCharToCenter();
       }
     }
 
@@ -260,7 +257,7 @@ export class AnimationEngine {
     }
 
     if (!animGroup) {
-      this.drawEmpty();
+      this.drawEmptyOverlay();
       return;
     }
 
@@ -339,13 +336,17 @@ export class AnimationEngine {
     }
   }
 
-  private drawEmpty(): void {
-    this.drawBackground();
+  private drawEmptyOverlay(): void {
     const ctx = this.ctx;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('No frames available', this.canvas.width / 2, this.canvas.height / 2);
+  }
+
+  private resetCharToCenter(): void {
+    this.charX = this.canvas.width / 2;
+    this.charY = this.canvas.height / 2;
   }
 
   private getFirstGroup(): string | null {
