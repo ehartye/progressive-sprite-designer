@@ -55,7 +55,7 @@ export function createGenerateRouter(apiKey) {
 
   router.post('/generate', async (req, res) => {
     try {
-      const { model, prompt, referenceImages = [] } = req.body;
+      const { model, prompt, referenceImages = [], seed, aspectRatio } = req.body;
 
       if (!model || !prompt) {
         return res.status(400).json({ error: 'model and prompt are required' });
@@ -71,12 +71,24 @@ export function createGenerateRouter(apiKey) {
         })),
       ];
 
+      const generationConfig = {
+        responseModalities: ['TEXT', 'IMAGE'],
+        temperature: 1.0,
+      };
+      if (seed != null) generationConfig.seed = seed;
+      if (aspectRatio) generationConfig.imageConfig = { aspectRatio };
+
       const body = {
         contents: [{ parts }],
-        generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-        },
+        generationConfig,
       };
+
+      const payloadSize = JSON.stringify(body).length;
+      console.log(`[Generate] ${referenceImages.length} ref image(s), payload ~${(payloadSize / 1024 / 1024).toFixed(2)}MB`);
+      referenceImages.forEach((img, i) => {
+        const bytes = Math.ceil(img.data.length * 3 / 4);
+        console.log(`[Generate]   ref[${i}]: ${(bytes / 1024).toFixed(0)}KB`);
+      });
 
       const response = await callGemini(apiKey, model, body);
 

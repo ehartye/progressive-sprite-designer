@@ -4,7 +4,10 @@ import { WorkflowEngine } from '../lib/workflow';
 import { GAME_TYPES, getTotalPoseCountFromHierarchy } from '../lib/poses';
 import type { Phase } from '../lib/poses';
 import { buildFullPrompt } from '../lib/prompts';
+import { downsampleImage } from '../lib/imageUtils';
 import { createGalleryEntry, addSpriteToGallery, removeSpriteFromGallery, fetchGalleryEntry, fetchHierarchy } from '../api/dataClient';
+
+const STORED_MAX_DIM = 512;
 
 export function useWorkflow() {
   const { state, dispatch, engineRef, clientRef, spriteDbIdsRef } = useWorkflowContext();
@@ -150,6 +153,13 @@ export function useWorkflow() {
       return;
     }
 
+    // Downscale the approved image so stored sprites (and future references) are smaller
+    const downsized = await downsampleImage(data.imageData, data.mimeType, STORED_MAX_DIM);
+    data.imageData = downsized.data;
+    data.mimeType = downsized.mimeType;
+    // Also update the engine's copy so in-memory references stay small
+    engine.approvedSprites.set(engine.getCurrentPose()?.id || '', data);
+
     const sprite: ApprovedSprite = {
       poseId: engine.getCurrentPose()?.id || '',
       poseName: data.poseName ?? 'Unknown',
@@ -220,11 +230,40 @@ export function useWorkflow() {
 
     const { done } = engine.advanceToNextPose();
     if (done) {
-      dispatch({ type: 'WORKFLOW_COMPLETE' });
-      setStatus(
-        `Workflow complete! ${engine.getProgress().approved} sprites approved, ${engine.getProgress().skipped} skipped.`,
-        'success',
-      );
+      if (engine.isComplete()) {
+        // All poses approved/skipped — advance sequentially so user can browse
+        let ph = engine.currentPhaseIndex;
+        let pi = engine.currentPoseIndex + 1;
+        if (pi >= engine.hierarchy[ph].poses.length) {
+          ph++;
+          pi = 0;
+        }
+        if (ph >= engine.hierarchy.length) {
+          // Wrap to start
+          ph = 0;
+          pi = 0;
+        }
+        engine.jumpToPose(ph, pi);
+        const prompt = buildPromptPreview(engine, state.characterConfig);
+        dispatch({ type: 'POSE_NAVIGATED', phaseIndex: ph, poseIndex: pi, prompt });
+
+        // Load the approved sprite into the generation slot
+        const pose = engine.getCurrentPose();
+        const approved = pose ? engine.approvedSprites.get(pose.id) : null;
+        if (approved) {
+          const result = { image: { data: approved.imageData, mimeType: approved.mimeType } };
+          engine.generatedOptions = [result];
+          engine.selectedOptionIndex = 0;
+          dispatch({ type: 'GENERATE_COMPLETE', results: [result], prompt });
+          dispatch({ type: 'IMAGE_SELECTED', index: 0 });
+        }
+      } else {
+        dispatch({ type: 'WORKFLOW_COMPLETE' });
+        setStatus(
+          `Workflow complete! ${engine.getProgress().approved} sprites approved, ${engine.getProgress().skipped} skipped.`,
+          'success',
+        );
+      }
     } else {
       const prompt = buildPromptPreview(engine, state.characterConfig);
       dispatch({
@@ -248,6 +287,17 @@ export function useWorkflow() {
       poseIndex: engine.currentPoseIndex,
       prompt,
     });
+
+    // If navigating to an already-approved pose, show its sprite
+    const pose = engine.getCurrentPose();
+    const approved = pose ? engine.approvedSprites.get(pose.id) : null;
+    if (approved) {
+      const result = { image: { data: approved.imageData, mimeType: approved.mimeType } };
+      engine.generatedOptions = [result];
+      engine.selectedOptionIndex = 0;
+      dispatch({ type: 'GENERATE_COMPLETE', results: [result], prompt });
+      dispatch({ type: 'IMAGE_SELECTED', index: 0 });
+    }
   }, [dispatch, engineRef, state.characterConfig]);
 
   const jumpToPose = useCallback((phaseIndex: number, poseIndex: number) => {
@@ -257,6 +307,17 @@ export function useWorkflow() {
     engine.jumpToPose(phaseIndex, poseIndex);
     const prompt = buildPromptPreview(engine, state.characterConfig);
     dispatch({ type: 'POSE_NAVIGATED', phaseIndex, poseIndex, prompt });
+
+    // If navigating to an already-approved pose, show its sprite
+    const pose = engine.getCurrentPose();
+    const approved = pose ? engine.approvedSprites.get(pose.id) : null;
+    if (approved) {
+      const result = { image: { data: approved.imageData, mimeType: approved.mimeType } };
+      engine.generatedOptions = [result];
+      engine.selectedOptionIndex = 0;
+      dispatch({ type: 'GENERATE_COMPLETE', results: [result], prompt });
+      dispatch({ type: 'IMAGE_SELECTED', index: 0 });
+    }
   }, [dispatch, engineRef, state.characterConfig]);
 
   const regenerateOne = useCallback(async (index: number) => {
@@ -338,13 +399,18 @@ export function useWorkflow() {
       const engine = new WorkflowEngine(clientRef.current, entry.gameType, hierarchy);
       engineRef.current = engine;
 
-      // Restore approved sprites into the engine and populate the DB ID cache
+      // Restore approved sprites into the engine, downscaling legacy full-res images
       const approvedSprites: ApprovedSprite[] = [];
       spriteDbIdsRef.current.clear();
-      for (const sprite of entry.sprites) {
+      const downsized = await Promise.all(
+        entry.sprites.map(sprite => downsampleImage(sprite.imageData, sprite.mimeType, STORED_MAX_DIM))
+      );
+      for (let idx = 0; idx < entry.sprites.length; idx++) {
+        const sprite = entry.sprites[idx];
+        const img = downsized[idx];
         const spriteData = {
-          imageData: sprite.imageData,
-          mimeType: sprite.mimeType,
+          imageData: img.data,
+          mimeType: img.mimeType,
           poseName: sprite.poseName,
           timestamp: new Date(sprite.createdAt).getTime(),
           prompt: sprite.prompt,
@@ -381,6 +447,19 @@ export function useWorkflow() {
         poseIndex: engine.currentPoseIndex,
         prompt,
       });
+
+      // If all complete, show the current pose's approved sprite in the first slot
+      if (done) {
+        const pose = engine.getCurrentPose();
+        const approved = pose ? engine.approvedSprites.get(pose.id) : null;
+        if (approved) {
+          const result = { image: { data: approved.imageData, mimeType: approved.mimeType } };
+          engine.generatedOptions = [result];
+          engine.selectedOptionIndex = 0;
+          dispatch({ type: 'GENERATE_COMPLETE', results: [result], prompt });
+          dispatch({ type: 'IMAGE_SELECTED', index: 0 });
+        }
+      }
 
       setStatus(
         `Resumed "${entry.characterName}" — ${approvedSprites.length} sprite(s) loaded`,

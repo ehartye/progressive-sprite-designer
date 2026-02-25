@@ -1,8 +1,6 @@
 import { useRef, useEffect } from 'react';
 import type { GeneratedOption } from '../../context/WorkflowContext';
 
-const DISPLAY_SCALE = 4;
-
 interface Props {
   option: GeneratedOption;
   index: number;
@@ -20,8 +18,6 @@ export default function ImageCard({ option, index, isSelected, onSelect, onRegen
     if (!img) return;
     const handler = () => {
       if (dimRef.current) dimRef.current.textContent = `${img.naturalWidth} x ${img.naturalHeight}`;
-      img.style.width = `${img.naturalWidth * DISPLAY_SCALE}px`;
-      img.style.height = `${img.naturalHeight * DISPLAY_SCALE}px`;
     };
     img.addEventListener('load', handler);
     return () => img.removeEventListener('load', handler);

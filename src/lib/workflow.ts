@@ -23,9 +23,15 @@ interface ApprovedSpriteData {
 }
 
 interface SpriteClient {
-  generateImage(prompt: string, refs: ImageData[]): Promise<GeneratedOption>;
-  generateMultiple(prompt: string, refs: ImageData[], count: number): Promise<GeneratedOption[]>;
+  generateImage(prompt: string, refs: ImageData[], seed?: number, aspectRatio?: string): Promise<GeneratedOption>;
+  generateMultiple(prompt: string, refs: ImageData[], count: number, aspectRatio?: string): Promise<GeneratedOption[]>;
   getModelId(): string;
+}
+
+function computeAspectRatio(w: number, h: number): string {
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  const d = gcd(w, h);
+  return `${w / d}:${h / d}`;
 }
 
 interface CharacterConfig {
@@ -93,10 +99,34 @@ export class WorkflowEngine {
   }
 
   getApprovedImagesForReference(): ImageData[] {
-    return Array.from(this.approvedSprites.values()).map(s => ({
-      data: s.imageData,
-      mimeType: s.mimeType,
-    }));
+    const refs: ImageData[] = [];
+    const added = new Set<string>();
+
+    // Never include the current pose as a reference to avoid self-bias
+    const currentPoseId = this.getCurrentPose()?.id;
+
+    const addRef = (poseId: string) => {
+      if (added.has(poseId)) return;
+      if (poseId === currentPoseId) return;
+      const sprite = this.approvedSprites.get(poseId);
+      if (!sprite) return;
+      refs.push({ data: sprite.imageData, mimeType: sprite.mimeType });
+      added.add(poseId);
+    };
+
+    // Always include the first pose (anchor/base idle) as a reference
+    const anchorId = this.hierarchy[0]?.poses[0]?.id;
+    if (anchorId) addRef(anchorId);
+
+    // Include preceding approved poses from the current phase
+    const phase = this.getCurrentPhase();
+    if (phase) {
+      for (let i = 0; i < this.currentPoseIndex; i++) {
+        addRef(phase.poses[i].id);
+      }
+    }
+
+    return refs;
   }
 
   // --- Generation ---
@@ -110,12 +140,13 @@ export class WorkflowEngine {
     this.selectedOptionIndex = -1;
 
     try {
+      const refs = this.getApprovedImagesForReference();
       let prompt = buildFullPrompt(
         this.gameTypeId,
         this.spriteSize,
         characterConfig,
         pose,
-        this.approvedSprites.size
+        refs.length
       );
 
       if (customInstructions.trim()) {
@@ -123,8 +154,8 @@ export class WorkflowEngine {
       }
 
       this.lastPrompt = prompt;
-      const refs = this.getApprovedImagesForReference();
-      const results = await this.client.generateMultiple(prompt, refs, 4);
+      const aspectRatio = computeAspectRatio(this.spriteSize.w, this.spriteSize.h);
+      const results = await this.client.generateMultiple(prompt, refs, 4, aspectRatio);
       this.generatedOptions = results;
       return results;
     } finally {
@@ -136,12 +167,13 @@ export class WorkflowEngine {
     const pose = this.getCurrentPose();
     if (!pose) throw new Error('No current pose');
 
+    const refs = this.getApprovedImagesForReference();
     let prompt = buildFullPrompt(
       this.gameTypeId,
       this.spriteSize,
       characterConfig,
       pose,
-      this.approvedSprites.size
+      refs.length
     );
 
     if (customInstructions.trim()) {
@@ -149,10 +181,10 @@ export class WorkflowEngine {
     }
 
     this.lastPrompt = prompt;
-    const refs = this.getApprovedImagesForReference();
+    const aspectRatio = computeAspectRatio(this.spriteSize.w, this.spriteSize.h);
 
     try {
-      const result = await this.client.generateImage(prompt, refs);
+      const result = await this.client.generateImage(prompt, refs, undefined, aspectRatio);
       this.generatedOptions[index] = result;
       return result;
     } catch (err: unknown) {
