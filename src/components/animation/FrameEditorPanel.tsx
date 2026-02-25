@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { AnimationEditorAPI } from '../../hooks/useAnimationEditor';
 import type { FrameAdjust } from '../../lib/animationEngine';
 import { DEFAULT_FRAME_ADJUST } from '../../lib/animationEngine';
-import { drawImageFitCenter } from '../../lib/canvasUtils';
+import { drawImageFitCenter, setupHiDpiCanvas } from '../../lib/canvasUtils';
 import { getDefaultMsPerFrame, getDefaultLoop } from '../../lib/pathScripts';
 import FrameStrip from './FrameStrip';
 
@@ -49,19 +49,21 @@ export default function FrameEditorPanel({ api }: Props) {
     ? (state.frameAdjustments[selectedFrame.poseId] ?? DEFAULT_FRAME_ADJUST)
     : DEFAULT_FRAME_ADJUST;
 
+  const DETAIL_SIZE = 192;
+
   // Draw selected frame on the detail canvas — prefer chroma-processed image
   useEffect(() => {
     const canvas = detailCanvasRef.current;
     if (!canvas || !selectedSprite) return;
 
+    setupHiDpiCanvas(canvas, DETAIL_SIZE, DETAIL_SIZE);
     const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
 
     // Try chroma-processed image first
     const processed = getProcessedImage(selectedSprite.poseId);
     if (processed) {
-      drawImageFitCenter(ctx, processed, canvas.width, canvas.height);
+      drawImageFitCenter(ctx, processed, DETAIL_SIZE, DETAIL_SIZE);
       return;
     }
 
@@ -70,8 +72,10 @@ export default function FrameEditorPanel({ api }: Props) {
     const img = new Image();
     img.onload = () => {
       if (cancelled) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawImageFitCenter(ctx, img, canvas.width, canvas.height);
+      setupHiDpiCanvas(canvas, DETAIL_SIZE, DETAIL_SIZE);
+      const freshCtx = canvas.getContext('2d')!;
+      freshCtx.imageSmoothingEnabled = false;
+      drawImageFitCenter(freshCtx, img, DETAIL_SIZE, DETAIL_SIZE);
     };
     img.src = `data:${selectedSprite.mimeType};base64,${selectedSprite.imageData}`;
 
@@ -150,8 +154,6 @@ export default function FrameEditorPanel({ api }: Props) {
         <div className="anim-frame-detail">
           <canvas
             ref={detailCanvasRef}
-            width={192}
-            height={192}
             className="anim-frame-detail-canvas"
           />
           <div className="anim-frame-detail-sliders">

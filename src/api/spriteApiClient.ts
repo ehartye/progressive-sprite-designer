@@ -1,5 +1,3 @@
-import { downsampleImage } from '../lib/imageUtils';
-
 interface ImageRef {
   data: string;
   mimeType: string;
@@ -10,8 +8,6 @@ interface GenerateResult {
   image?: { data: string; mimeType: string };
   error?: string;
 }
-
-const REF_MAX_DIM = 256;
 
 /**
  * SpriteApiClient that proxies all requests through the Express server.
@@ -33,14 +29,10 @@ export default class SpriteApiClient {
   }
 
   async generateImage(prompt: string, referenceImages: ImageRef[] = [], seed?: number, aspectRatio?: string): Promise<GenerateResult> {
-    const shrunkRefs = await Promise.all(
-      referenceImages.map(ref => downsampleImage(ref.data, ref.mimeType, REF_MAX_DIM))
-    );
-
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: this.model, prompt, referenceImages: shrunkRefs, seed, aspectRatio }),
+      body: JSON.stringify({ model: this.model, prompt, referenceImages, seed, aspectRatio }),
     });
 
     if (!response.ok) {

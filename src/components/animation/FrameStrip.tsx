@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import type { AnimFrame } from '../../lib/animationEngine';
 import type { ApprovedSprite } from '../../context/WorkflowContext';
-import { drawImageFitCenter } from '../../lib/canvasUtils';
+import { drawImageFitCenter, setupHiDpiCanvas } from '../../lib/canvasUtils';
 
 interface FrameStripProps {
   frames: AnimFrame[];
@@ -83,19 +83,20 @@ function FrameThumb({
 }: FrameThumbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const THUMB_SIZE = 64;
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     let cancelled = false;
-    const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = false;
-
     const img = new Image();
     img.onload = () => {
       if (cancelled) return;
-      drawImageFitCenter(ctx, img, canvas.width, canvas.height);
+      setupHiDpiCanvas(canvas, THUMB_SIZE, THUMB_SIZE);
+      const ctx = canvas.getContext('2d')!;
+      ctx.imageSmoothingEnabled = false;
+      drawImageFitCenter(ctx, img, THUMB_SIZE, THUMB_SIZE);
     };
     img.src = `data:${sprite.mimeType};base64,${sprite.imageData}`;
 
@@ -120,7 +121,7 @@ function FrameThumb({
       onDrop={e => { e.preventDefault(); onDrop(); }}
       onDragEnd={onDragEnd}
     >
-      <canvas ref={canvasRef} width={64} height={64} className="anim-frame-thumb" />
+      <canvas ref={canvasRef} className="anim-frame-thumb" />
       <span className="anim-frame-index">#{frame.frameIndex}</span>
     </div>
   );
