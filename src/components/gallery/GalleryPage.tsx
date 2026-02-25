@@ -26,8 +26,10 @@ export default function GalleryPage({ onSwitchToDesigner }: Props) {
   useEffect(() => { load(); }, [load]);
 
   const handleResume = async (entry: GalleryEntry) => {
-    await resumeFromGallery(entry.id);
-    onSwitchToDesigner();
+    const success = await resumeFromGallery(entry.id);
+    if (success) {
+      onSwitchToDesigner();
+    }
   };
 
   const handleDelete = async (entry: GalleryEntry) => {

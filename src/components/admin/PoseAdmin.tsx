@@ -28,7 +28,7 @@ export default function PoseAdmin() {
           await updatePose(selectedGameType, editingPose.id, {
             name: poseData.name,
             description: poseData.description,
-            direction: poseData.direction ?? undefined,
+            direction: poseData.direction,
             spriteWidth: poseData.spriteSize.w,
             spriteHeight: poseData.spriteSize.h,
           });
