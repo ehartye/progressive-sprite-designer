@@ -24,25 +24,25 @@ export interface PathScript {
  * matching SNES-era sprite animation conventions.
  */
 export const DEFAULT_MS_PER_FRAME: Record<string, number> = {
-  idle: 200,
-  walk_down: 133,
-  walk_up: 133,
-  walk_left: 133,
-  walk_right: 133,
-  run_down: 83,
-  run_up: 83,
-  run_left: 83,
-  run_right: 83,
-  run: 83,
-  battle_idle: 150,
-  battle_attack: 80,
-  battle_cast: 100,
-  battle_damage: 80,
-  battle_ko: 200,
-  battle_victory: 150,
-  attack: 80,
-  jump: 100,
-  emotes: 300,
+  idle: 500,
+  walk_down: 500,
+  walk_up: 500,
+  walk_left: 500,
+  walk_right: 500,
+  run_down: 500,
+  run_up: 500,
+  run_left: 500,
+  run_right: 500,
+  run: 500,
+  battle_idle: 500,
+  battle_attack: 500,
+  battle_cast: 500,
+  battle_damage: 500,
+  battle_ko: 500,
+  battle_victory: 500,
+  attack: 500,
+  jump: 500,
+  emotes: 500,
 };
 
 /** Animation groups that should loop by default (vs one-shot) */
@@ -72,12 +72,7 @@ export function getDefaultMsPerFrame(animGroup: string): number {
   if (DEFAULT_MS_PER_FRAME[animGroup] != null) {
     return DEFAULT_MS_PER_FRAME[animGroup];
   }
-  // Heuristic fallbacks based on name patterns
-  if (animGroup.startsWith('walk')) return 133;
-  if (animGroup.startsWith('run')) return 83;
-  if (animGroup.includes('attack') || animGroup.includes('cast')) return 80;
-  if (animGroup.includes('idle')) return 200;
-  return 133;
+  return 500;
 }
 
 export function getDefaultLoop(animGroup: string): boolean {

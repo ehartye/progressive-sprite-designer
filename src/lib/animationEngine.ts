@@ -201,7 +201,7 @@ export class AnimationEngine {
     this.charY += step.moveY * dt;
 
     // Clamp to canvas bounds
-    const margin = this.spriteW * this.zoom / 2;
+    const margin = this.spriteW * this.zoom;
     this.charX = Math.max(margin, Math.min(this.canvas.width - margin, this.charX));
     this.charY = Math.max(margin, Math.min(this.canvas.height - margin, this.charY));
 
@@ -230,7 +230,7 @@ export class AnimationEngine {
     const frames = this.groupedFrames.get(animGroup);
     if (!frames || frames.length === 0) return;
 
-    const ms = this.msPerFrame.get(animGroup) ?? 133;
+    const ms = this.msPerFrame.get(animGroup) ?? 500;
     this.frameElapsed += dt;
 
     if (this.frameElapsed >= ms) {
@@ -299,10 +299,17 @@ export class AnimationEngine {
     const img = this.processedImages.get(frame.poseId) ?? this.images.get(frame.poseId);
     if (!img) return;
 
-    const w = this.spriteW * this.zoom * adj.scaleX;
-    const h = this.spriteH * this.zoom * adj.scaleY;
-    const dx = adj.dx * this.zoom;
-    const dy = adj.dy * this.zoom;
+    // Fit image within the target box while preserving its native aspect ratio
+    const imgW = img.naturalWidth || this.spriteW;
+    const imgH = img.naturalHeight || this.spriteH;
+    const spriteScale = 2; // render sprites 2x larger within the stage
+    const targetW = this.spriteW * this.zoom * spriteScale;
+    const targetH = this.spriteH * this.zoom * spriteScale;
+    const fitScale = Math.min(targetW / imgW, targetH / imgH);
+    const w = imgW * fitScale * adj.scaleX;
+    const h = imgH * fitScale * adj.scaleY;
+    const dx = adj.dx * this.zoom * spriteScale;
+    const dy = adj.dy * this.zoom * spriteScale;
 
     ctx.save();
     ctx.imageSmoothingEnabled = false;

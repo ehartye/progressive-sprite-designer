@@ -31,7 +31,7 @@ export default function FrameEditorPanel({ api }: Props) {
   const [selectedFrameId, setSelectedFrameId] = useState('');
   const detailCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const groupMs = state.msPerFrame[selectedAnimGroup] ?? 133;
+  const groupMs = state.msPerFrame[selectedAnimGroup] ?? 500;
   const groupLoop = state.loopGroups[selectedAnimGroup] ?? true;
 
   // Synchronous derivation: if selected frame isn't in current group, snap to first frame
