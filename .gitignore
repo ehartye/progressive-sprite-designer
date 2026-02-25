@@ -24,5 +24,10 @@ Thumbs.db
 *.swo
 *~
 
+# Database
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
 # Vite
 *.local

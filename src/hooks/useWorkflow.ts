@@ -1,11 +1,13 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useWorkflowContext, ApprovedSprite, StatusMessage } from '../context/WorkflowContext';
 import { WorkflowEngine } from '../lib/workflow';
-import { GAME_TYPES, getTotalPoseCount } from '../lib/poses';
+import { GAME_TYPES, getTotalPoseCountFromHierarchy } from '../lib/poses';
+import type { Phase } from '../lib/poses';
 import { buildFullPrompt } from '../lib/prompts';
+import { createGalleryEntry, addSpriteToGallery, removeSpriteFromGallery, fetchGalleryEntry, fetchHierarchy } from '../api/dataClient';
 
 export function useWorkflow() {
-  const { state, dispatch, engineRef, clientRef } = useWorkflowContext();
+  const { state, dispatch, engineRef, clientRef, spriteDbIdsRef } = useWorkflowContext();
   const statusTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Auto-dismiss status for info/success
@@ -42,7 +44,7 @@ export function useWorkflow() {
     }
   }, [clientRef, setStatus]);
 
-  const startWorkflow = useCallback((config: { gameType: string; name: string; description: string; equipment: string; colorNotes: string }) => {
+  const startWorkflow = useCallback(async (config: { gameType: string; name: string; description: string; equipment: string; colorNotes: string }) => {
     if (!config.gameType || !config.name || !config.description) {
       setStatus('Please fill in all required fields.', 'warning');
       return;
@@ -50,13 +52,40 @@ export function useWorkflow() {
 
     dispatch({ type: 'SET_CHARACTER_CONFIG', config });
 
-    const engine = new WorkflowEngine(clientRef.current, config.gameType);
+    // Fetch hierarchy from API (DB-backed)
+    let hierarchy: Phase[];
+    try {
+      hierarchy = await fetchHierarchy(config.gameType);
+    } catch {
+      // Fallback to static data
+      const engine = new WorkflowEngine(clientRef.current, config.gameType);
+      hierarchy = engine.hierarchy;
+    }
+
+    const engine = new WorkflowEngine(clientRef.current, config.gameType, hierarchy);
     engineRef.current = engine;
+
+    // Create gallery entry in DB
+    let generationSetId: number | null = null;
+    try {
+      const result = await createGalleryEntry({
+        characterName: config.name,
+        gameType: config.gameType,
+        description: config.description,
+        equipment: config.equipment,
+        colorNotes: config.colorNotes,
+        model: state.model,
+      });
+      generationSetId = result.id;
+    } catch (err) {
+      console.warn('Failed to create gallery entry:', err);
+    }
 
     dispatch({
       type: 'WORKFLOW_STARTED',
       hierarchy: engine.hierarchy,
-      totalPoses: getTotalPoseCount(config.gameType),
+      totalPoses: getTotalPoseCountFromHierarchy(engine.hierarchy),
+      generationSetId,
     });
 
     // Build initial prompt preview
@@ -70,11 +99,12 @@ export function useWorkflow() {
       }
     }
 
+    const gameTypeName = GAME_TYPES[config.gameType]?.name ?? config.gameType;
     setStatus(
-      `Workflow started — ${GAME_TYPES[config.gameType].name} (${getTotalPoseCount(config.gameType)} poses)`,
+      `Workflow started — ${gameTypeName} (${getTotalPoseCountFromHierarchy(engine.hierarchy)} poses)`,
       'success',
     );
-  }, [dispatch, clientRef, engineRef, setStatus]);
+  }, [dispatch, clientRef, engineRef, setStatus, state.model]);
 
   const generate = useCallback(async () => {
     const engine = engineRef.current;
@@ -110,7 +140,7 @@ export function useWorkflow() {
     dispatch({ type: 'IMAGE_SELECTED', index });
   }, [dispatch, engineRef]);
 
-  const approve = useCallback(() => {
+  const approve = useCallback(async () => {
     const engine = engineRef.current;
     if (!engine) return;
 
@@ -128,13 +158,34 @@ export function useWorkflow() {
       timestamp: data.timestamp,
       prompt: data.prompt,
       modelId: data.modelId,
-      customInstructions: data.customInstructions,
+      customInstructions: state.customInstructions,
       referenceImageIds: data.referenceImageIds,
     };
 
     dispatch({ type: 'POSE_APPROVED', sprite });
+
+    // Auto-save to DB
+    if (state.generationSetId) {
+      try {
+        const result = await addSpriteToGallery(state.generationSetId, {
+          poseId: sprite.poseId,
+          poseName: sprite.poseName,
+          imageData: sprite.imageData,
+          mimeType: sprite.mimeType,
+          prompt: sprite.prompt,
+          modelId: sprite.modelId,
+          customInstructions: sprite.customInstructions,
+          referenceImageIds: sprite.referenceImageIds,
+        });
+        // Cache the DB sprite ID to avoid fetching the full gallery on removal
+        spriteDbIdsRef.current.set(sprite.poseId, result.id);
+      } catch (err) {
+        console.warn('Failed to save sprite to gallery:', err);
+      }
+    }
+
     setStatus('Sprite approved!', 'success');
-  }, [dispatch, engineRef, setStatus]);
+  }, [dispatch, engineRef, setStatus, state.generationSetId, state.customInstructions, spriteDbIdsRef]);
 
   const skip = useCallback(() => {
     const engine = engineRef.current;
@@ -223,12 +274,29 @@ export function useWorkflow() {
     }
   }, [state.characterConfig, state.customInstructions, dispatch, engineRef, setStatus]);
 
-  const removeSprite = useCallback((poseId: string) => {
+  const removeSprite = useCallback(async (poseId: string) => {
     const engine = engineRef.current;
     if (engine) engine.removeApproval(poseId);
     dispatch({ type: 'SPRITE_REMOVED', poseId });
+
+    // Also remove from DB (fire-and-forget). Use cached sprite ID to avoid fetching
+    // the full gallery entry (including base64 image data for every sprite).
+    if (state.generationSetId) {
+      const cachedId = spriteDbIdsRef.current.get(poseId);
+      if (cachedId !== undefined) {
+        spriteDbIdsRef.current.delete(poseId);
+        removeSpriteFromGallery(state.generationSetId, cachedId).catch(() => { /* ignore */ });
+      } else {
+        // Fallback: locate the sprite ID via gallery entry if it wasn't cached
+        fetchGalleryEntry(state.generationSetId).then(entry => {
+          const dbSprite = entry.sprites.find(s => s.poseId === poseId);
+          if (dbSprite) removeSpriteFromGallery(state.generationSetId!, dbSprite.id).catch(() => { /* ignore */ });
+        }).catch(() => { /* ignore */ });
+      }
+    }
+
     setStatus('Sprite removed from approved.', 'info');
-  }, [dispatch, engineRef, setStatus]);
+  }, [dispatch, engineRef, setStatus, state.generationSetId, spriteDbIdsRef]);
 
   const setCustomInstructions = useCallback((text: string) => {
     dispatch({ type: 'SET_CUSTOM_INSTRUCTIONS', text });
@@ -237,6 +305,99 @@ export function useWorkflow() {
   const setCharacterConfig = useCallback((config: Partial<{ gameType: string; name: string; description: string; equipment: string; colorNotes: string }>) => {
     dispatch({ type: 'SET_CHARACTER_CONFIG', config });
   }, [dispatch]);
+
+  // Resume workflow from a gallery entry. Returns true on success, false on failure.
+  const resumeFromGallery = useCallback(async (galleryId: number): Promise<boolean> => {
+    try {
+      setStatus('Loading gallery entry...', 'info');
+      const entry = await fetchGalleryEntry(galleryId);
+
+      const config = {
+        gameType: entry.gameType,
+        name: entry.characterName,
+        description: entry.description,
+        equipment: entry.equipment,
+        colorNotes: entry.colorNotes,
+      };
+      dispatch({ type: 'SET_CHARACTER_CONFIG', config });
+
+      if (entry.model) {
+        clientRef.current.setModel(entry.model);
+        dispatch({ type: 'SET_MODEL', model: entry.model });
+      }
+
+      // Fetch hierarchy from DB
+      let hierarchy: Phase[];
+      try {
+        hierarchy = await fetchHierarchy(entry.gameType);
+      } catch {
+        const tempEngine = new WorkflowEngine(clientRef.current, entry.gameType);
+        hierarchy = tempEngine.hierarchy;
+      }
+
+      const engine = new WorkflowEngine(clientRef.current, entry.gameType, hierarchy);
+      engineRef.current = engine;
+
+      // Restore approved sprites into the engine and populate the DB ID cache
+      const approvedSprites: ApprovedSprite[] = [];
+      spriteDbIdsRef.current.clear();
+      for (const sprite of entry.sprites) {
+        const spriteData = {
+          imageData: sprite.imageData,
+          mimeType: sprite.mimeType,
+          poseName: sprite.poseName,
+          timestamp: new Date(sprite.createdAt).getTime(),
+          prompt: sprite.prompt,
+          modelId: sprite.modelId,
+          customInstructions: sprite.customInstructions,
+          referenceImageIds: sprite.referenceImageIds,
+        };
+        engine.approvedSprites.set(sprite.poseId, spriteData);
+        approvedSprites.push({ poseId: sprite.poseId, ...spriteData });
+        spriteDbIdsRef.current.set(sprite.poseId, sprite.id);
+      }
+
+      dispatch({
+        type: 'WORKFLOW_STARTED',
+        hierarchy: engine.hierarchy,
+        totalPoses: getTotalPoseCountFromHierarchy(engine.hierarchy),
+        generationSetId: galleryId,
+      });
+
+      // Sync approved sprites into state
+      dispatch({ type: 'SYNC_ENGINE', approvedSprites, skippedPoseIds: [] });
+
+      // Navigate to the first unapproved pose
+      const { done } = engine.advanceToNextUnapprovedPose();
+      if (done) {
+        // All poses approved, go to first pose
+        engine.jumpToPose(0, 0);
+      }
+
+      const prompt = buildPromptPreview(engine, config);
+      dispatch({
+        type: 'POSE_NAVIGATED',
+        phaseIndex: engine.currentPhaseIndex,
+        poseIndex: engine.currentPoseIndex,
+        prompt,
+      });
+
+      setStatus(
+        `Resumed "${entry.characterName}" — ${approvedSprites.length} sprite(s) loaded`,
+        'success',
+      );
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to resume';
+      setStatus(`Resume failed: ${message}`, 'error');
+      return false;
+    }
+  }, [dispatch, clientRef, engineRef, setStatus, spriteDbIdsRef]);
+
+  const resetWorkflow = useCallback(() => {
+    engineRef.current = null;
+    dispatch({ type: 'WORKFLOW_RESET' });
+  }, [dispatch, engineRef]);
 
   return {
     state,
@@ -255,6 +416,8 @@ export function useWorkflow() {
     setCustomInstructions,
     setCharacterConfig,
     setStatus,
+    resumeFromGallery,
+    resetWorkflow,
   };
 }
 

@@ -32,6 +32,7 @@ export interface GameType {
   defaultSpriteSize: SpriteSize;
 }
 
+// Static fallback (used during loading or if API fails)
 export const GAME_TYPES: Record<string, GameType> = posesData.gameTypes;
 export const POSE_HIERARCHIES: Record<string, Phase[]> = posesData.hierarchies;
 
@@ -60,6 +61,10 @@ export function getTotalPoseCount(gameTypeId: string): number {
   const phases = POSE_HIERARCHIES[gameTypeId];
   if (!phases) return 0;
   return phases.reduce((s, ph) => s + ph.poses.length, 0);
+}
+
+export function getTotalPoseCountFromHierarchy(hierarchy: Phase[]): number {
+  return hierarchy.reduce((s, ph) => s + ph.poses.length, 0);
 }
 
 export function getRequiredPoseCount(gameTypeId: string): number {

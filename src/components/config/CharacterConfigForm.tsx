@@ -1,9 +1,10 @@
 import { useWorkflow } from '../../hooks/useWorkflow';
-import { GAME_TYPES } from '../../lib/poses';
+import { useData } from '../../context/DataContext';
 import { saveCustomCharacter } from '../../lib/characterStore';
 
 export default function CharacterConfigForm() {
-  const { state, startWorkflow, setCharacterConfig, setStatus } = useWorkflow();
+  const { state, startWorkflow, setCharacterConfig, setStatus, resetWorkflow } = useWorkflow();
+  const { gameTypes, reloadCharacters } = useData();
   const { characterConfig, workflowActive } = state;
 
   const canStart = characterConfig.gameType && characterConfig.name.trim() && characterConfig.description.trim();
@@ -12,21 +13,24 @@ export default function CharacterConfigForm() {
     startWorkflow(characterConfig);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!characterConfig.name.trim()) {
       setStatus('Enter a character name before saving.', 'warning');
       return;
     }
-    saveCustomCharacter({
-      name: characterConfig.name,
-      gameType: characterConfig.gameType,
-      description: characterConfig.description,
-      equipment: characterConfig.equipment,
-      colorNotes: characterConfig.colorNotes,
-    });
-    setStatus(`Character "${characterConfig.name}" saved!`, 'success');
-    // Trigger a re-render in CharacterPresets via a custom event
-    window.dispatchEvent(new Event('characters-updated'));
+    try {
+      await saveCustomCharacter({
+        name: characterConfig.name,
+        gameType: characterConfig.gameType,
+        description: characterConfig.description,
+        equipment: characterConfig.equipment,
+        colorNotes: characterConfig.colorNotes,
+      });
+      await reloadCharacters();
+      setStatus(`Character "${characterConfig.name}" saved!`, 'success');
+    } catch {
+      setStatus('Failed to save character', 'error');
+    }
   };
 
   return (
@@ -40,7 +44,7 @@ export default function CharacterConfigForm() {
           disabled={workflowActive}
         >
           <option value="">-- Select game type --</option>
-          {Object.values(GAME_TYPES).map(gt => (
+          {Object.values(gameTypes).map(gt => (
             <option key={gt.id} value={gt.id}>{gt.name}</option>
           ))}
         </select>
@@ -94,14 +98,24 @@ export default function CharacterConfigForm() {
       </div>
 
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button
-          className="btn btn-primary"
-          style={{ flex: 1 }}
-          disabled={!canStart || workflowActive}
-          onClick={handleStart}
-        >
-          {workflowActive ? 'Workflow Active' : 'Start Workflow'}
-        </button>
+        {workflowActive ? (
+          <button
+            className="btn btn-secondary"
+            style={{ flex: 1 }}
+            onClick={resetWorkflow}
+          >
+            End Workflow
+          </button>
+        ) : (
+          <button
+            className="btn btn-primary"
+            style={{ flex: 1 }}
+            disabled={!canStart}
+            onClick={handleStart}
+          >
+            Start Workflow
+          </button>
+        )}
         <button
           className="btn btn-secondary"
           disabled={!characterConfig.name.trim()}

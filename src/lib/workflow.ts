@@ -1,4 +1,4 @@
-import { getPoseHierarchy, getTotalPoseCount, GAME_TYPES, Phase, Pose, SpriteSize } from './poses';
+import { getPoseHierarchy, getTotalPoseCountFromHierarchy, GAME_TYPES, Phase, Pose, SpriteSize } from './poses';
 import { buildFullPrompt } from './prompts';
 
 interface ImageData {
@@ -52,10 +52,10 @@ export class WorkflowEngine {
   lastPrompt: string;
   isGenerating: boolean;
 
-  constructor(geminiClient: SpriteClient, gameTypeId: string) {
+  constructor(geminiClient: SpriteClient, gameTypeId: string, externalHierarchy?: Phase[]) {
     this.client = geminiClient;
     this.gameTypeId = gameTypeId;
-    this.hierarchy = getPoseHierarchy(gameTypeId) ?? [];
+    this.hierarchy = externalHierarchy ?? getPoseHierarchy(gameTypeId) ?? [];
     this.spriteSize = GAME_TYPES[gameTypeId]?.defaultSpriteSize ?? { w: 16, h: 24 };
 
     if (!this.hierarchy.length) {
@@ -266,10 +266,28 @@ export class WorkflowEngine {
     return { phase, pose: phase.poses[poseIndex] };
   }
 
+  // Advance to next unapproved pose from the very beginning (used for resume)
+  advanceToNextUnapprovedPose(): { phase: Phase | null; pose: Pose | null; done: boolean } {
+    for (let ph = 0; ph < this.hierarchy.length; ph++) {
+      const phase = this.hierarchy[ph];
+      for (let pi = 0; pi < phase.poses.length; pi++) {
+        const pose = phase.poses[pi];
+        if (!this.approvedSprites.has(pose.id) && !this.skippedPoses.has(pose.id)) {
+          this.currentPhaseIndex = ph;
+          this.currentPoseIndex = pi;
+          this.generatedOptions = [];
+          this.selectedOptionIndex = -1;
+          return { phase, pose, done: false };
+        }
+      }
+    }
+    return { phase: null, pose: null, done: true };
+  }
+
   // --- Progress ---
 
   getProgress(): { completed: number; total: number; approved: number; skipped: number } {
-    const total = getTotalPoseCount(this.gameTypeId);
+    const total = getTotalPoseCountFromHierarchy(this.hierarchy);
     return {
       completed: this.approvedSprites.size + this.skippedPoses.size,
       total,

@@ -1,4 +1,5 @@
-import presetData from '../data/characters.json';
+import { createCharacter, deleteCharacter as apiDeleteCharacter } from '../api/dataClient';
+import type { CharacterData } from '../api/dataClient';
 
 export interface CharacterConfig {
   id: string;
@@ -9,32 +10,48 @@ export interface CharacterConfig {
   equipment: string;
   colorNotes: string;
   isCustom?: boolean;
+  isPreset?: boolean;
 }
 
-const STORAGE_KEY = 'sprite-designer-characters';
+export function charactersFromData(data: CharacterData[]): {
+  presets: CharacterConfig[];
+  customs: CharacterConfig[];
+} {
+  const presets: CharacterConfig[] = [];
+  const customs: CharacterConfig[] = [];
 
-export function getPresetCharacters(): CharacterConfig[] {
-  return presetData.presets;
-}
-
-export function getCustomCharacters(): CharacterConfig[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+  for (const c of data) {
+    const config: CharacterConfig = {
+      id: c.id,
+      name: c.name,
+      gameType: c.gameType,
+      genre: c.genre ?? undefined,
+      description: c.description,
+      equipment: c.equipment,
+      colorNotes: c.colorNotes,
+      isPreset: c.isPreset,
+      isCustom: c.isCustom,
+    };
+    if (c.isPreset) presets.push(config);
+    else customs.push(config);
   }
+
+  return { presets, customs };
 }
 
-export function saveCustomCharacter(char: Omit<CharacterConfig, 'id' | 'isCustom'>): CharacterConfig {
-  const customs = getCustomCharacters();
-  const newChar: CharacterConfig = { ...char, id: `custom-${Date.now()}`, isCustom: true };
-  customs.push(newChar);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(customs));
-  return newChar;
+export async function saveCustomCharacter(char: Omit<CharacterConfig, 'id' | 'isCustom'>): Promise<CharacterConfig> {
+  const result = await createCharacter({
+    name: char.name,
+    gameType: char.gameType,
+    genre: char.genre,
+    description: char.description,
+    equipment: char.equipment,
+    colorNotes: char.colorNotes,
+  });
+
+  return { ...char, id: result.id, isCustom: true };
 }
 
-export function deleteCustomCharacter(id: string): void {
-  const customs = getCustomCharacters().filter(c => c.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(customs));
+export async function deleteCustomCharacter(id: string): Promise<void> {
+  await apiDeleteCharacter(id);
 }

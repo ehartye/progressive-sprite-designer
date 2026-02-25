@@ -1,21 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useWorkflow } from '../../hooks/useWorkflow';
-import { getPresetCharacters, getCustomCharacters, deleteCustomCharacter, type CharacterConfig } from '../../lib/characterStore';
-import { GAME_TYPES } from '../../lib/poses';
+import { useData } from '../../context/DataContext';
+import { charactersFromData, deleteCustomCharacter, type CharacterConfig } from '../../lib/characterStore';
 
 export default function CharacterPresets() {
   const { setCharacterConfig, state, setStatus } = useWorkflow();
-  const [presets] = useState(() => getPresetCharacters());
-  const [customs, setCustoms] = useState(() => getCustomCharacters());
+  const { characters, gameTypes, reloadCharacters } = useData();
+  const { presets, customs } = charactersFromData(characters);
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [customsOpen, setCustomsOpen] = useState(false);
-
-  // Listen for save events to refresh custom list
-  useEffect(() => {
-    const handler = () => setCustoms(getCustomCharacters());
-    window.addEventListener('characters-updated', handler);
-    return () => window.removeEventListener('characters-updated', handler);
-  }, []);
 
   const loadCharacter = (char: CharacterConfig) => {
     if (state.workflowActive) return;
@@ -29,15 +22,19 @@ export default function CharacterPresets() {
     setStatus(`Loaded "${char.name}"`, 'info');
   };
 
-  const handleDelete = (id: string, name: string) => {
-    deleteCustomCharacter(id);
-    setCustoms(getCustomCharacters());
-    setStatus(`Deleted "${name}"`, 'info');
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await deleteCustomCharacter(id);
+      await reloadCharacters();
+      setStatus(`Deleted "${name}"`, 'info');
+    } catch {
+      setStatus('Failed to delete character', 'error');
+    }
   };
 
   // Group presets by game type
-  const grouped = Object.keys(GAME_TYPES).map(gtId => ({
-    gameType: GAME_TYPES[gtId],
+  const grouped = Object.keys(gameTypes).map(gtId => ({
+    gameType: gameTypes[gtId],
     characters: presets.filter((p: CharacterConfig) => p.gameType === gtId),
   })).filter(g => g.characters.length > 0);
 
@@ -114,7 +111,7 @@ export default function CharacterPresets() {
                     style={{ cursor: state.workflowActive ? 'not-allowed' : 'pointer', color: 'var(--text-primary)', flex: 1 }}
                   >
                     {char.name}
-                    {char.gameType && <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>{GAME_TYPES[char.gameType]?.name}</span>}
+                    {char.gameType && <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>{gameTypes[char.gameType]?.name}</span>}
                   </span>
                   <button
                     onClick={e => { e.stopPropagation(); handleDelete(char.id, char.name); }}
