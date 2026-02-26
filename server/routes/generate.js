@@ -61,14 +61,18 @@ export function createGenerateRouter(apiKey) {
         return res.status(400).json({ error: 'model and prompt are required' });
       }
 
+      // Reference images come first for Gemini implicit caching:
+      // The 4 parallel calls per pose share the same reference images but
+      // different seeds. Placing stable content at the start of the parts
+      // array maximizes cache hit rates (75% discount on cached input tokens).
       const parts = [
-        { text: prompt },
         ...referenceImages.map((img) => ({
           inline_data: {
             mime_type: img.mimeType,
             data: img.data,
           },
         })),
+        { text: prompt },
       ];
 
       const generationConfig = {

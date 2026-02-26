@@ -99,6 +99,12 @@ export class WorkflowEngine {
   }
 
   getApprovedImagesForReference(): ImageData[] {
+    // Golden rule: NEVER more than 3 reference images.
+    // 1 anchor (primary idle) + up to 2 immediate predecessors in the series.
+    // Research shows diminishing returns past 3 references, and excess references
+    // can confuse the model and increase payload size/cost.
+    const MAX_PHASE_REFS = 2;
+
     const refs: ImageData[] = [];
     const added = new Set<string>();
 
@@ -114,15 +120,23 @@ export class WorkflowEngine {
       added.add(poseId);
     };
 
-    // Always include the first pose (anchor/base idle) as a reference
+    // STEP 1: Always include the first pose (anchor/base idle) as a reference
     const anchorId = this.hierarchy[0]?.poses[0]?.id;
     if (anchorId) addRef(anchorId);
 
-    // Include preceding approved poses from the current phase
+    // STEP 2: Up to MAX_PHASE_REFS most-recent preceding poses in the current phase
     const phase = this.getCurrentPhase();
     if (phase) {
-      for (let i = 0; i < this.currentPoseIndex; i++) {
-        addRef(phase.poses[i].id);
+      const recent: string[] = [];
+      for (let i = this.currentPoseIndex - 1; i >= 0 && recent.length < MAX_PHASE_REFS; i--) {
+        const poseId = phase.poses[i].id;
+        if (poseId !== currentPoseId && !added.has(poseId) && this.approvedSprites.has(poseId)) {
+          recent.push(poseId);
+        }
+      }
+      // Add in chronological order (reverse the recent array since we collected backwards)
+      for (const id of recent.reverse()) {
+        addRef(id);
       }
     }
 
