@@ -7,9 +7,10 @@ interface Props {
   isSelected: boolean;
   onSelect: () => void;
   onRegenerate: () => void;
+  onFlip: () => void;
 }
 
-export default function ImageCard({ option, index, isSelected, onSelect, onRegenerate }: Props) {
+export default function ImageCard({ option, index, isSelected, onSelect, onRegenerate, onFlip }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
   const dimRef = useRef<HTMLSpanElement>(null);
 
@@ -59,6 +60,13 @@ export default function ImageCard({ option, index, isSelected, onSelect, onRegen
           onClick={e => { e.stopPropagation(); onRegenerate(); }}
         >
           &#8635;
+        </button>
+        <button
+          className="flip-btn"
+          title="Flip horizontal"
+          onClick={e => { e.stopPropagation(); onFlip(); }}
+        >
+          &#8596;
         </button>
       </div>
       <div className="image-card-meta">

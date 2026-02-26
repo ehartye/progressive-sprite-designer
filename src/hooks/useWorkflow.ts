@@ -4,7 +4,7 @@ import { WorkflowEngine } from '../lib/workflow';
 import { GAME_TYPES, getTotalPoseCountFromHierarchy } from '../lib/poses';
 import type { Phase } from '../lib/poses';
 import { buildFullPrompt } from '../lib/prompts';
-import { downsampleImage } from '../lib/imageUtils';
+import { downsampleImage, flipImageHorizontal } from '../lib/imageUtils';
 import { createGalleryEntry, addSpriteToGallery, removeSpriteFromGallery, fetchGalleryEntry, fetchHierarchy } from '../api/dataClient';
 
 const STORED_MAX_DIM = 512;
@@ -114,10 +114,10 @@ export function useWorkflow() {
     if (!engine || engine.isGenerating) return;
 
     dispatch({ type: 'GENERATE_START' });
-    setStatus('Generating 4 options...', 'info');
+    setStatus(`Generating ${state.generationCount} option(s)...`, 'info');
 
     try {
-      const results = await engine.generateCurrentPose(state.characterConfig, state.customInstructions);
+      const results = await engine.generateCurrentPose(state.characterConfig, state.customInstructions, state.generationCount);
       dispatch({ type: 'GENERATE_COMPLETE', results, prompt: engine.getLastPrompt() });
 
       const successCount = results.filter((r: { image?: unknown }) => r.image).length;
@@ -130,12 +130,12 @@ export function useWorkflow() {
       const message = err instanceof Error ? err.message : 'Unknown error';
       dispatch({
         type: 'GENERATE_COMPLETE',
-        results: [{ error: message }, { error: 'Failed' }, { error: 'Failed' }, { error: 'Failed' }],
+        results: Array.from({ length: state.generationCount }, (_, i) => ({ error: i === 0 ? message : 'Failed' })),
         prompt: engine.getLastPrompt(),
       });
       setStatus(`Generation failed: ${message}`, 'error');
     }
-  }, [state.characterConfig, state.customInstructions, dispatch, engineRef, setStatus]);
+  }, [state.characterConfig, state.customInstructions, state.generationCount, dispatch, engineRef, setStatus]);
 
   const selectImage = useCallback((index: number) => {
     const engine = engineRef.current;
@@ -353,6 +353,124 @@ export function useWorkflow() {
     }
   }, [state.characterConfig, state.customInstructions, dispatch, engineRef, setStatus]);
 
+  const flipOption = useCallback(async (index: number) => {
+    const option = state.generatedOptions[index];
+    if (!option?.image) return;
+    try {
+      const flipped = await flipImageHorizontal(option.image.data, option.image.mimeType);
+      dispatch({ type: 'FLIP_OPTION', index, flippedData: flipped.data, flippedMimeType: flipped.mimeType });
+
+      // Also update engine's in-memory copy
+      const engine = engineRef.current;
+      if (engine && engine.generatedOptions[index]?.image) {
+        engine.generatedOptions[index] = {
+          ...engine.generatedOptions[index],
+          image: { data: flipped.data, mimeType: flipped.mimeType },
+        };
+      }
+    } catch (err) {
+      console.warn('Failed to flip image:', err);
+    }
+  }, [state.generatedOptions, dispatch, engineRef]);
+
+  const flipApproved = useCallback(async (poseId: string) => {
+    const sprite = state.approvedSprites.find(s => s.poseId === poseId);
+    if (!sprite) return;
+    try {
+      const flipped = await flipImageHorizontal(sprite.imageData, sprite.mimeType);
+      dispatch({ type: 'FLIP_APPROVED', poseId, flippedData: flipped.data, flippedMimeType: flipped.mimeType });
+
+      // Update engine's in-memory copy
+      const engine = engineRef.current;
+      if (engine) {
+        const engineSprite = engine.approvedSprites.get(poseId);
+        if (engineSprite) {
+          engine.approvedSprites.set(poseId, { ...engineSprite, imageData: flipped.data, mimeType: flipped.mimeType });
+        }
+      }
+
+      // Re-save to DB
+      if (state.generationSetId) {
+        const cachedId = spriteDbIdsRef.current.get(poseId);
+        if (cachedId !== undefined) {
+          addSpriteToGallery(state.generationSetId, {
+            poseId,
+            poseName: sprite.poseName,
+            imageData: flipped.data,
+            mimeType: flipped.mimeType,
+            prompt: sprite.prompt,
+            modelId: sprite.modelId,
+            customInstructions: sprite.customInstructions,
+            referenceImageIds: sprite.referenceImageIds,
+          }).catch(() => { /* ignore */ });
+        }
+      }
+
+      setStatus('Image flipped.', 'success');
+    } catch (err) {
+      console.warn('Failed to flip approved sprite:', err);
+    }
+  }, [state.approvedSprites, state.generationSetId, dispatch, engineRef, spriteDbIdsRef, setStatus]);
+
+  const copyFromSprite = useCallback(async (sourcePoseId: string) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    const source = state.approvedSprites.find(s => s.poseId === sourcePoseId);
+    if (!source) return;
+
+    const pose = engine.getCurrentPose();
+    if (!pose) return;
+    const poseId = pose.id;
+
+    const sprite: ApprovedSprite = {
+      poseId,
+      poseName: pose.name,
+      imageData: source.imageData,
+      mimeType: source.mimeType,
+      timestamp: Date.now(),
+      prompt: `Copied from ${source.poseName}`,
+      modelId: source.modelId,
+      customInstructions: '',
+      referenceImageIds: [sourcePoseId],
+    };
+
+    // Update engine
+    engine.approvedSprites.set(poseId, {
+      imageData: sprite.imageData,
+      mimeType: sprite.mimeType,
+      poseName: sprite.poseName,
+      timestamp: sprite.timestamp,
+      prompt: sprite.prompt,
+      modelId: sprite.modelId,
+      customInstructions: sprite.customInstructions,
+      referenceImageIds: sprite.referenceImageIds,
+    });
+
+    dispatch({ type: 'COPY_POSE', sprite });
+
+    // Auto-save to DB
+    if (state.generationSetId) {
+      try {
+        const result = await addSpriteToGallery(state.generationSetId, {
+          poseId: sprite.poseId,
+          poseName: sprite.poseName,
+          imageData: sprite.imageData,
+          mimeType: sprite.mimeType,
+          prompt: sprite.prompt,
+          modelId: sprite.modelId,
+          customInstructions: sprite.customInstructions,
+          referenceImageIds: sprite.referenceImageIds,
+        });
+        spriteDbIdsRef.current.set(sprite.poseId, result.id);
+      } catch (err) {
+        console.warn('Failed to save copied sprite to gallery:', err);
+      }
+    }
+
+    setStatus(`Copied from "${source.poseName}".`, 'success');
+  }, [state.approvedSprites, state.generationSetId, dispatch, engineRef, spriteDbIdsRef, setStatus]);
+
   const removeSprite = useCallback(async (poseId: string) => {
     const engine = engineRef.current;
     if (engine) engine.removeApproval(poseId);
@@ -379,6 +497,10 @@ export function useWorkflow() {
 
   const setCustomInstructions = useCallback((text: string) => {
     dispatch({ type: 'SET_CUSTOM_INSTRUCTIONS', text });
+  }, [dispatch]);
+
+  const setGenerationCount = useCallback((count: number) => {
+    dispatch({ type: 'SET_GENERATION_COUNT', count: Math.max(1, Math.min(4, count)) });
   }, [dispatch]);
 
   const setCharacterConfig = useCallback((config: Partial<{ gameType: string; name: string; description: string; equipment: string; colorNotes: string }>) => {
@@ -511,8 +633,12 @@ export function useWorkflow() {
     regenerateOne,
     removeSprite,
     setCustomInstructions,
+    setGenerationCount,
     setCharacterConfig,
     setStatus,
+    flipOption,
+    flipApproved,
+    copyFromSprite,
     resumeFromGallery,
     resetWorkflow,
   };

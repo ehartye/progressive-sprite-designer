@@ -145,7 +145,7 @@ export class WorkflowEngine {
 
   // --- Generation ---
 
-  async generateCurrentPose(characterConfig: CharacterConfig, customInstructions: string = ''): Promise<GeneratedOption[]> {
+  async generateCurrentPose(characterConfig: CharacterConfig, customInstructions: string = '', count: number = 4): Promise<GeneratedOption[]> {
     const pose = this.getCurrentPose();
     if (!pose) throw new Error('No current pose');
 
@@ -169,7 +169,7 @@ export class WorkflowEngine {
 
       this.lastPrompt = prompt;
       const aspectRatio = computeAspectRatio(this.spriteSize.w, this.spriteSize.h);
-      const results = await this.client.generateMultiple(prompt, refs, 4, aspectRatio);
+      const results = await this.client.generateMultiple(prompt, refs, count, aspectRatio);
       this.generatedOptions = results;
       return results;
     } finally {

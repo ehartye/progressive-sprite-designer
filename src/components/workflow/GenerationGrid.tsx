@@ -2,13 +2,14 @@ import { useWorkflow } from '../../hooks/useWorkflow';
 import ImageCard from './ImageCard';
 
 export default function GenerationGrid() {
-  const { state, selectImage, regenerateOne } = useWorkflow();
+  const { state, selectImage, regenerateOne, flipOption } = useWorkflow();
+  const count = state.generationCount;
 
   // Show shimmer placeholders while generating or when no results
   if (state.isGenerating) {
     return (
-      <div className="generation-grid">
-        {[0, 1, 2, 3].map(i => (
+      <div className={`generation-grid gen-grid-${count}`}>
+        {Array.from({ length: count }, (_, i) => (
           <div key={i} className="image-card placeholder-card">
             <div className="image-card-inner shimmer" />
             <div className="image-card-meta"><span className="image-dim">Generating...</span></div>
@@ -20,8 +21,8 @@ export default function GenerationGrid() {
 
   if (state.generatedOptions.length === 0) {
     return (
-      <div className="generation-grid">
-        {[0, 1, 2, 3].map(i => (
+      <div className={`generation-grid gen-grid-${count}`}>
+        {Array.from({ length: count }, (_, i) => (
           <div key={i} className="image-card placeholder-card">
             <div className="image-card-inner shimmer" />
             <div className="image-card-meta"><span className="image-dim">--</span></div>
@@ -32,7 +33,7 @@ export default function GenerationGrid() {
   }
 
   return (
-    <div className="generation-grid">
+    <div className={`generation-grid gen-grid-${count}`}>
       {state.generatedOptions.map((option, idx) => (
         <ImageCard
           key={idx}
@@ -41,6 +42,7 @@ export default function GenerationGrid() {
           isSelected={state.selectedIndex === idx}
           onSelect={() => selectImage(idx)}
           onRegenerate={() => regenerateOne(idx)}
+          onFlip={() => flipOption(idx)}
         />
       ))}
     </div>

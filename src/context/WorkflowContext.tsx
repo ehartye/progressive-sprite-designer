@@ -53,6 +53,7 @@ export interface WorkflowState {
   status: StatusMessage | null;
   totalPoses: number;
   generationSetId: number | null;
+  generationCount: number;
 }
 
 // --- Actions ---
@@ -74,7 +75,11 @@ type Action =
   | { type: 'CLEAR_STATUS' }
   | { type: 'SET_CUSTOM_INSTRUCTIONS'; text: string }
   | { type: 'SYNC_ENGINE'; approvedSprites: ApprovedSprite[]; skippedPoseIds: string[] }
-  | { type: 'SET_GENERATION_SET_ID'; id: number };
+  | { type: 'SET_GENERATION_SET_ID'; id: number }
+  | { type: 'SET_GENERATION_COUNT'; count: number }
+  | { type: 'FLIP_OPTION'; index: number; flippedData: string; flippedMimeType: string }
+  | { type: 'FLIP_APPROVED'; poseId: string; flippedData: string; flippedMimeType: string }
+  | { type: 'COPY_POSE'; sprite: ApprovedSprite };
 
 // --- Initial State ---
 
@@ -95,6 +100,7 @@ const initialState: WorkflowState = {
   status: null,
   totalPoses: 0,
   generationSetId: null,
+  generationCount: 4,
 };
 
 // --- Reducer ---
@@ -162,6 +168,30 @@ function workflowReducer(state: WorkflowState, action: Action): WorkflowState {
       return { ...state, approvedSprites: action.approvedSprites, skippedPoseIds: action.skippedPoseIds };
     case 'SET_GENERATION_SET_ID':
       return { ...state, generationSetId: action.id };
+    case 'SET_GENERATION_COUNT':
+      return { ...state, generationCount: action.count };
+    case 'FLIP_OPTION': {
+      const opts = [...state.generatedOptions];
+      const opt = opts[action.index];
+      if (opt?.image) {
+        opts[action.index] = { ...opt, image: { data: action.flippedData, mimeType: action.flippedMimeType } };
+      }
+      return { ...state, generatedOptions: opts };
+    }
+    case 'FLIP_APPROVED': {
+      const updated = state.approvedSprites.map(s =>
+        s.poseId === action.poseId
+          ? { ...s, imageData: action.flippedData, mimeType: action.flippedMimeType }
+          : s
+      );
+      return { ...state, approvedSprites: updated };
+    }
+    case 'COPY_POSE':
+      return {
+        ...state,
+        approvedSprites: [...state.approvedSprites.filter(s => s.poseId !== action.sprite.poseId), action.sprite],
+        selectedIndex: -1,
+      };
     default:
       return state;
   }

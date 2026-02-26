@@ -37,3 +37,34 @@ export function downsampleImage(
     img.src = `data:${mimeType};base64,${base64}`;
   });
 }
+
+/**
+ * Flip a base64-encoded image horizontally (mirror).
+ * Returns a new base64 string (no data URL prefix) and mime type.
+ */
+export function flipImageHorizontal(
+  base64: string,
+  mimeType: string
+): Promise<{ data: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      resolve({
+        data: dataUrl.replace(/^data:image\/png;base64,/, ''),
+        mimeType: 'image/png',
+      });
+    };
+    img.onerror = () => reject(new Error('Failed to load image for flip'));
+    img.src = `data:${mimeType};base64,${base64}`;
+  });
+}
