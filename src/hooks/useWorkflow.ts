@@ -449,10 +449,18 @@ export function useWorkflow() {
 
     dispatch({ type: 'COPY_POSE', sprite });
 
+    // Show the copied image in the generation grid (auto-approve visual feedback)
+    const result = { image: { data: sprite.imageData, mimeType: sprite.mimeType } };
+    engine.generatedOptions = [result];
+    engine.selectedOptionIndex = 0;
+    const prompt = buildPromptPreview(engine, state.characterConfig);
+    dispatch({ type: 'GENERATE_COMPLETE', results: [result], prompt });
+    dispatch({ type: 'IMAGE_SELECTED', index: 0 });
+
     // Auto-save to DB
     if (state.generationSetId) {
       try {
-        const result = await addSpriteToGallery(state.generationSetId, {
+        const dbResult = await addSpriteToGallery(state.generationSetId, {
           poseId: sprite.poseId,
           poseName: sprite.poseName,
           imageData: sprite.imageData,
@@ -462,14 +470,35 @@ export function useWorkflow() {
           customInstructions: sprite.customInstructions,
           referenceImageIds: sprite.referenceImageIds,
         });
-        spriteDbIdsRef.current.set(sprite.poseId, result.id);
+        spriteDbIdsRef.current.set(sprite.poseId, dbResult.id);
       } catch (err) {
         console.warn('Failed to save copied sprite to gallery:', err);
       }
     }
 
-    setStatus(`Copied from "${source.poseName}".`, 'success');
-  }, [state.approvedSprites, state.generationSetId, dispatch, engineRef, spriteDbIdsRef, setStatus]);
+    setStatus(`Copied from "${source.poseName}" — approved.`, 'success');
+
+    // Auto-advance to next unapproved pose
+    const { done } = engine.advanceToNextPose();
+    if (done) {
+      const { done: reallyDone } = engine.advanceToNextUnapprovedPose();
+      if (reallyDone) {
+        dispatch({ type: 'WORKFLOW_COMPLETE' });
+        setStatus(
+          `Workflow complete! ${engine.getProgress().approved} sprites approved, ${engine.getProgress().skipped} skipped.`,
+          'success',
+        );
+        return;
+      }
+    }
+    const nextPrompt = buildPromptPreview(engine, state.characterConfig);
+    dispatch({
+      type: 'POSE_NAVIGATED',
+      phaseIndex: engine.currentPhaseIndex,
+      poseIndex: engine.currentPoseIndex,
+      prompt: nextPrompt,
+    });
+  }, [state.approvedSprites, state.characterConfig, state.generationSetId, dispatch, engineRef, spriteDbIdsRef, setStatus]);
 
   const removeSprite = useCallback(async (poseId: string) => {
     const engine = engineRef.current;
