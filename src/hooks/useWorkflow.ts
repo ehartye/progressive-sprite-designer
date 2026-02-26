@@ -477,27 +477,6 @@ export function useWorkflow() {
     }
 
     setStatus(`Copied from "${source.poseName}" — approved.`, 'success');
-
-    // Auto-advance to next unapproved pose
-    const { done } = engine.advanceToNextPose();
-    if (done) {
-      const { done: reallyDone } = engine.advanceToNextUnapprovedPose();
-      if (reallyDone) {
-        dispatch({ type: 'WORKFLOW_COMPLETE' });
-        setStatus(
-          `Workflow complete! ${engine.getProgress().approved} sprites approved, ${engine.getProgress().skipped} skipped.`,
-          'success',
-        );
-        return;
-      }
-    }
-    const nextPrompt = buildPromptPreview(engine, state.characterConfig);
-    dispatch({
-      type: 'POSE_NAVIGATED',
-      phaseIndex: engine.currentPhaseIndex,
-      poseIndex: engine.currentPoseIndex,
-      prompt: nextPrompt,
-    });
   }, [state.approvedSprites, state.characterConfig, state.generationSetId, dispatch, engineRef, spriteDbIdsRef, setStatus]);
 
   const removeSprite = useCallback(async (poseId: string) => {
