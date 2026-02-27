@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sprite Animation Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body { background: #00c853; }
+
+  .hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.85); padding: 8px 12px;
+    z-index: 10; display: flex; flex-direction: column; gap: 6px;
+  }
+  .hud-top {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .hud button {
+    padding: 4px 10px; border: 1px solid #555; background: #2a2a3e;
+    color: #ccc; font-family: monospace; font-size: 12px;
+    cursor: pointer; border-radius: 3px; white-space: nowrap;
+  }
+  .hud button.active { background: #4a4a7e; border-color: #88f; color: #fff; }
+  .hud button:hover { background: #3a3a5e; }
+  .hud label { color: #aaa; font-family: monospace; font-size: 12px; }
+  .hud input[type=range] { width: 90px; vertical-align: middle; }
+  .hud .val { color: #fff; font-family: monospace; font-size: 12px; min-width: 38px; }
+  .hud .sep { width: 1px; height: 20px; background: #555; flex-shrink: 0; }
+  .hud .frame-info { color: #888; font-family: monospace; font-size: 11px; margin-left: auto; }
+  .hud .file-pick { font-family: monospace; font-size: 11px; color: #aaa; }
+  .hud .file-pick input { width: 160px; }
+
+  .thumb-strip {
+    display: flex; gap: 3px; align-items: flex-end;
+    overflow-x: auto; padding: 4px 0 2px;
+  }
+  .thumb-strip canvas {
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    cursor: pointer; border: 2px solid transparent; border-radius: 2px;
+    flex-shrink: 0; background: #00c853;
+  }
+  .thumb-strip canvas:hover { border-color: #fff8; }
+  .thumb-strip canvas.active { border-color: #88f; }
+
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  }
+  #canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    position: absolute;
+  }
+  .hint {
+    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+    color: rgba(0,0,0,0.35); font-family: monospace; font-size: 13px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div class="hud-top">
+    <div id="anim-buttons"></div>
+    <div class="sep"></div>
+    <span class="file-pick">
+      <label>Sheet:</label>
+      <input type="file" id="file-input" accept="image/png">
+    </span>
+    <div class="sep"></div>
+    <label>Speed</label>
+    <input type="range" id="speed" min="50" max="500" value="150" step="10">
+    <span class="val" id="speed-val">150ms</span>
+    <div class="sep"></div>
+    <label>Scale</label>
+    <input type="range" id="scale" min="0.25" max="3" value="1" step="0.25">
+    <span class="val" id="scale-val">1x</span>
+    <span class="frame-info" id="info"></span>
+  </div>
+  <div class="thumb-strip" id="thumbs"></div>
+</div>
+
+<div id="stage">
+  <canvas id="canvas"></canvas>
+</div>
+<div class="hint">Arrow keys to move</div>
+
+<script>
+// ── Grid layout (matches generate_sprite_grid.py) ──────────────────────────
+const COLS = 6;
+const ROWS = 6;
+const THUMB_H = 64;
+const MOVE_SPEED = 4;
+
+// Default sheet — override with ?sheet=filename or file picker
+const DEFAULT_SHEET = 'fire_mage_spritesheet.png';
+
+const ANIMATIONS = {
+  'Walk Down':    [0, 1, 2, 1],
+  'Walk Up':      [3, 4, 5, 4],
+  'Walk Left':    [6, 7, 8, 7],
+  'Walk Right':   [9, 10, 11, 10],
+  'Idle Down':    [12],
+  'Idle Up':      [13],
+  'Idle Left':    [14],
+  'Idle Right':   [15],
+  'Battle Idle':  [16, 17, 18, 17],
+  'Attack':       [19, 20, 21],
+  'Cast':         [22, 23, 24],
+  'Damage':       [25, 26, 27],
+  'KO':           [28, 29, 30],
+  'Victory':      [31, 32, 33],
+  'Weak':         [34],
+  'Critical':     [35],
+};
+
+const DIR_WALK = {
+  ArrowDown: 'Walk Down', ArrowUp: 'Walk Up',
+  ArrowLeft: 'Walk Left', ArrowRight: 'Walk Right',
+};
+const DIR_IDLE = {
+  ArrowDown: 'Idle Down', ArrowUp: 'Idle Up',
+  ArrowLeft: 'Idle Left', ArrowRight: 'Idle Right',
+};
+const DIR_DELTA = {
+  ArrowDown: [0,1], ArrowUp: [0,-1],
+  ArrowLeft: [-1,0], ArrowRight: [1,0],
+};
+
+const CELL_LABELS = [
+  'Walk Down 1','Walk Down 2','Walk Down 3',
+  'Walk Up 1','Walk Up 2','Walk Up 3',
+  'Walk Left 1','Walk Left 2','Walk Left 3',
+  'Walk Right 1','Walk Right 2','Walk Right 3',
+  'Idle Down','Idle Up','Idle Left','Idle Right',
+  'Battle Idle 1','Battle Idle 2','Battle Idle 3',
+  'Attack 1','Attack 2','Attack 3',
+  'Cast 1','Cast 2','Cast 3',
+  'Damage 1','Damage 2','Damage 3',
+  'KO 1','KO 2','KO 3',
+  'Victory 1','Victory 2','Victory 3',
+  'Weak Pose','Critical Pose',
+];
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const infoEl = document.getElementById('info');
+const speedSlider = document.getElementById('speed');
+const speedValEl = document.getElementById('speed-val');
+const scaleSlider = document.getElementById('scale');
+const scaleValEl = document.getElementById('scale-val');
+const btnContainer = document.getElementById('anim-buttons');
+const thumbStrip = document.getElementById('thumbs');
+const fileInput = document.getElementById('file-input');
+
+let sheet = null;
+let cellW = 0, cellH = 0;
+let currentAnim = 'Idle Down';
+let frame = 0;
+let timer = null;
+let displayScale = 1;
+let frozen = false;
+let frozenCell = 0;
+const mirrorMap = {};
+const thumbCanvases = [];
+
+let charX = 0, charY = 0;
+let lastDir = 'ArrowDown';
+const keysDown = new Set();
+
+// ── Buttons ─────────────────────────────────────────────────────────────────
+Object.keys(ANIMATIONS).forEach((name) => {
+  const btn = document.createElement('button');
+  btn.textContent = name;
+  btn.dataset.anim = name;
+  if (name === 'Idle Down') btn.classList.add('active');
+  btn.addEventListener('click', () => {
+    frozen = false;
+    setActiveButton(name);
+    currentAnim = name;
+    frame = 0;
+    highlightThumb(-1);
+    restartTimer();
+  });
+  btnContainer.appendChild(btn);
+});
+
+function setActiveButton(animName) {
+  document.querySelectorAll('#anim-buttons button').forEach(b => {
+    b.classList.toggle('active', b.dataset.anim === animName);
+  });
+}
+
+// ── Thumbnails ──────────────────────────────────────────────────────────────
+function buildThumbs() {
+  thumbStrip.innerHTML = '';
+  thumbCanvases.length = 0;
+  const ratio = cellW / cellH;
+  const tw = Math.round(THUMB_H * ratio);
+
+  for (let idx = 0; idx < COLS * ROWS; idx++) {
+    const tc = document.createElement('canvas');
+    tc.width = tw;
+    tc.height = THUMB_H;
+    tc.title = CELL_LABELS[idx] || `Cell ${idx}`;
+    tc.dataset.cell = idx;
+
+    const tctx = tc.getContext('2d');
+    tctx.imageSmoothingEnabled = false;
+    const col = idx % COLS;
+    const row = Math.floor(idx / COLS);
+    tctx.drawImage(sheet, col * cellW, row * cellH, cellW, cellH, 0, 0, tw, THUMB_H);
+
+    tc.addEventListener('click', () => {
+      if (frozen && frozenCell === idx) {
+        mirrorMap[idx] = !mirrorMap[idx];
+        updateThumb(idx);
+      } else {
+        frozen = true;
+        frozenCell = idx;
+      }
+      if (timer) { clearInterval(timer); timer = null; }
+      setActiveButton('');
+      highlightThumb(idx);
+      drawSprite(idx, !!mirrorMap[idx]);
+      const label = CELL_LABELS[idx] || `Cell ${idx}`;
+      infoEl.textContent = `${label}${mirrorMap[idx] ? ' (mirrored)' : ''} | click again to flip`;
+    });
+
+    thumbStrip.appendChild(tc);
+    thumbCanvases.push(tc);
+  }
+}
+
+function highlightThumb(activeIdx) {
+  thumbCanvases.forEach(tc => {
+    tc.classList.toggle('active', parseInt(tc.dataset.cell) === activeIdx);
+  });
+}
+
+function updateThumb(idx) {
+  const tc = thumbCanvases[idx];
+  const tctx = tc.getContext('2d');
+  const col = idx % COLS;
+  const row = Math.floor(idx / COLS);
+  tctx.clearRect(0, 0, tc.width, tc.height);
+  tctx.save();
+  if (mirrorMap[idx]) {
+    tctx.translate(tc.width, 0);
+    tctx.scale(-1, 1);
+  }
+  tctx.drawImage(sheet, col * cellW, row * cellH, cellW, cellH, 0, 0, tc.width, tc.height);
+  tctx.restore();
+}
+
+// ── Sliders ─────────────────────────────────────────────────────────────────
+speedSlider.addEventListener('input', () => {
+  speedValEl.textContent = speedSlider.value + 'ms';
+  if (!frozen) restartTimer();
+});
+
+scaleSlider.addEventListener('input', () => {
+  displayScale = parseFloat(scaleSlider.value);
+  scaleValEl.textContent = displayScale + 'x';
+  resizeCanvas();
+});
+
+// ── Arrow keys ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (!DIR_WALK[e.key]) return;
+  e.preventDefault();
+  if (frozen) {
+    frozen = false;
+    highlightThumb(-1);
+    restartTimer();
+  }
+  keysDown.add(e.key);
+  lastDir = e.key;
+  const walkAnim = DIR_WALK[e.key];
+  if (currentAnim !== walkAnim) {
+    currentAnim = walkAnim;
+    frame = 0;
+    setActiveButton(currentAnim);
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  if (!DIR_WALK[e.key]) return;
+  e.preventDefault();
+  keysDown.delete(e.key);
+  if (keysDown.size > 0) {
+    const remaining = [...keysDown].pop();
+    lastDir = remaining;
+    const walkAnim = DIR_WALK[remaining];
+    if (currentAnim !== walkAnim) {
+      currentAnim = walkAnim;
+      frame = 0;
+      setActiveButton(currentAnim);
+    }
+  } else {
+    currentAnim = DIR_IDLE[lastDir];
+    frame = 0;
+    setActiveButton(currentAnim);
+  }
+});
+
+// ── Sheet loading ───────────────────────────────────────────────────────────
+function loadSheet(src) {
+  const img = new Image();
+  img.onload = () => {
+    sheet = img;
+    cellW = Math.floor(img.width / COLS);
+    cellH = Math.floor(img.height / ROWS);
+
+    // Reset state
+    Object.keys(mirrorMap).forEach(k => delete mirrorMap[k]);
+    frozen = false;
+    frame = 0;
+    currentAnim = 'Idle Down';
+    setActiveButton(currentAnim);
+
+    charX = Math.round(window.innerWidth / 2);
+    charY = Math.round(window.innerHeight / 2);
+
+    buildThumbs();
+    resizeCanvas();
+    restartTimer();
+    infoEl.textContent = `Loaded ${img.width}x${img.height} | cell ${cellW}x${cellH}`;
+  };
+  img.onerror = () => {
+    infoEl.textContent = 'Failed to load sheet';
+  };
+  img.src = src;
+}
+
+// File picker
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  loadSheet(url);
+});
+
+// ?sheet= query param support
+const params = new URLSearchParams(window.location.search);
+const sheetParam = params.get('sheet');
+loadSheet(sheetParam || DEFAULT_SHEET);
+
+// ── Drawing ─────────────────────────────────────────────────────────────────
+function resizeCanvas() {
+  if (!sheet) return;
+  canvas.width = Math.round(cellW * displayScale);
+  canvas.height = Math.round(cellH * displayScale);
+  ctx.imageSmoothingEnabled = false;
+  positionCanvas();
+}
+
+function positionCanvas() {
+  canvas.style.left = Math.round(charX - canvas.width / 2) + 'px';
+  canvas.style.top = Math.round(charY - canvas.height / 2) + 'px';
+}
+
+function restartTimer() {
+  if (timer) clearInterval(timer);
+  timer = setInterval(tick, parseInt(speedSlider.value));
+}
+
+function tick() {
+  if (!sheet || frozen) return;
+
+  if (keysDown.size > 0) {
+    let dx = 0, dy = 0;
+    for (const key of keysDown) {
+      const d = DIR_DELTA[key];
+      dx += d[0]; dy += d[1];
+    }
+    charX += dx * MOVE_SPEED;
+    charY += dy * MOVE_SPEED;
+    const hw = canvas.width / 2, hh = canvas.height / 2;
+    charX = Math.max(hw, Math.min(window.innerWidth - hw, charX));
+    charY = Math.max(hh, Math.min(window.innerHeight - hh, charY));
+    positionCanvas();
+  }
+
+  const frames = ANIMATIONS[currentAnim];
+  frame = (frame + 1) % frames.length;
+  const cellIdx = frames[frame];
+  drawSprite(cellIdx, !!mirrorMap[cellIdx]);
+  infoEl.textContent = `${currentAnim} [${frame + 1}/${frames.length}] | (${Math.round(charX)}, ${Math.round(charY)})`;
+}
+
+function drawSprite(cellIdx, mirror) {
+  const col = cellIdx % COLS;
+  const row = Math.floor(cellIdx / COLS);
+  const sx = col * cellW;
+  const sy = row * cellH;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  if (mirror) {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(sheet, sx, sy, cellW, cellH, 0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+</script>
+</body>
+</html>

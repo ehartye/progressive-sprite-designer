@@ -31,3 +31,9 @@ data/*.db-shm
 
 # Vite
 *.local
+
+# Test output images (keep sprite_grid_template*)
+tests/*.png
+!tests/sprite_grid_template.png
+!tests/sprite_grid_template_1k.png
+tests/debug_cells/
