@@ -16,8 +16,8 @@ MODEL = "nano-banana-pro-preview"
 TEMPLATE = os.path.join(os.path.dirname(__file__), "sprite_grid_template.png")
 OUTPUT = os.path.join(os.path.dirname(__file__), "test_swamp_monster_output_nano.png")
 
-# Try to load key from .env.local
-env_path = os.path.join(os.path.dirname(__file__), ".env.local")
+# Try to load key from .env.local (in project root)
+env_path = os.path.join(os.path.dirname(__file__), "..", ".env.local")
 if os.path.exists(env_path):
     with open(env_path) as f:
         for line in f:
@@ -67,6 +67,14 @@ the same vertical baseline so they tile cleanly. Even action poses (attack
 swings, casting, damage recoil) must keep the character's center of mass
 near the middle of the cell — do not let poses drift to the edges. KO/lying
 poses should be centered horizontally even though they are low to the ground.
+
+FRAMING IS CRITICAL: The character's ENTIRE body must be fully visible within
+each cell — no part of the head, feet, arms, claws, or tail should be cut off
+by the cell edges. Scale the sprite small enough that even the most dynamic
+poses (attack swings, cast effects, victory jumps) fit completely inside the
+cell with a few pixels of margin on all sides. Any visual effects (spell
+clouds, mud splashes, slime trails, energy auras) must also stay fully within
+the cell boundaries — nothing should bleed past or be clipped by the frame.
 
 Below is the exact layout with a description of what each cell should depict.
 Row and column numbers are 0-indexed (row, col).
